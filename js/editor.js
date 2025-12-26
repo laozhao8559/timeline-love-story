@@ -83,6 +83,14 @@ function toggleEditorMode() {
     musicSection.classList.toggle('visible', editorMode);
   }
 
+  // Update navigation highlight
+  if (editorMode) {
+    const currentPage = getCurrentPageKey();
+    if (typeof updateEditorNavHighlight === 'function') {
+      updateEditorNavHighlight(currentPage);
+    }
+  }
+
   if (editorMode) {
     enterEditMode();
   } else {
@@ -91,6 +99,18 @@ function toggleEditorMode() {
 
   StorageManager.save(STORAGE_KEYS.EDITOR_MODE, editorMode);
   showToast(editorMode ? '已进入编辑模式' : '已退出编辑模式', 'info');
+}
+
+/**
+ * Get current page key
+ */
+function getCurrentPageKey() {
+  const activePage = document.querySelector('.page.active');
+  if (activePage) {
+    const id = activePage.id;
+    return id.replace('-page', '');
+  }
+  return 'choice'; // Default
 }
 
 /**

@@ -56,6 +56,11 @@ function transitionToPage(pageName) {
  * Handle page-specific initialization
  */
 function handlePageInit(pageKey) {
+  // Update editor navigation highlight
+  if (editorMode) {
+    updateEditorNavHighlight(pageKey);
+  }
+
   switch (pageKey) {
     case 'proposal':
       initProposalPage();
@@ -138,6 +143,27 @@ function initMusicWithEditor() {
 
   // Set initial UI state (muted)
   updateMusicUI();
+}
+
+/**
+ * Editor navigation - go to a specific page in editor mode
+ */
+function editorGoToPage(pageKey) {
+  transitionToPage(pageKey);
+  updateEditorNavHighlight(pageKey);
+}
+
+/**
+ * Update editor navigation highlight
+ */
+function updateEditorNavHighlight(pageKey) {
+  const navBtns = document.querySelectorAll('.editor-nav-btn');
+  navBtns.forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.onclick.toString().includes(`'${pageKey}'`)) {
+      btn.classList.add('active');
+    }
+  });
 }
 
 /**

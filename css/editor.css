@@ -37,6 +37,64 @@
   color: white;
 }
 
+/* ========== Editor Navigation Bar ========== */
+.editor-nav-bar {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: none;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+body.editor-mode .editor-nav-bar {
+  display: flex;
+}
+
+.editor-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--primary-color);
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.editor-nav-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.editor-nav-btn.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Mobile: Stack vertically */
+@media (max-width: 480px) {
+  .editor-nav-bar {
+    top: auto;
+    bottom: 80px;
+    right: 20px;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .editor-nav-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+  }
+}
+
 /* ========== Editor Mode Body ========== */
 body.editor-mode {
   padding-bottom: 60px;
