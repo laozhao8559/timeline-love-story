@@ -5,6 +5,7 @@
 
 /**
  * Initialize the timeline
+ * 支持独立内容块插入
  */
 function initTimeline() {
   const container = document.getElementById('timeline-nodes');
@@ -13,10 +14,24 @@ function initTimeline() {
   // Clear existing content
   container.innerHTML = '';
 
-  // Render all timeline nodes
+  // 先渲染 insertAfter: -1 的内容块（最前面）
+  const headBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === -1);
+  headBlocks.forEach(block => {
+    const blockEl = createStandaloneBlock(block);
+    container.appendChild(blockEl);
+  });
+
+  // 渲染所有时间轴节点，并在节点之间插入独立内容块
   timelineData.forEach((node, index) => {
     const nodeEl = createTimelineNode(node, index);
     container.appendChild(nodeEl);
+
+    // 查找并渲染在当前节点之后的独立内容块
+    const afterBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === index);
+    afterBlocks.forEach(block => {
+      const blockEl = createStandaloneBlock(block);
+      container.appendChild(blockEl);
+    });
   });
 
   // Render the ending
@@ -25,7 +40,38 @@ function initTimeline() {
 }
 
 /**
+ * Create a standalone content block element
+ * 独立内容块 - 不依附于任何节点
+ */
+function createStandaloneBlock(block) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'standalone-block';
+  wrapper.dataset.blockId = block.id;
+
+  if (block.type === 'text') {
+    wrapper.innerHTML = `
+      <div class="standalone-text">
+        ${escapeHtml(block.content)}
+      </div>
+    `;
+  } else if (block.type === 'image') {
+    wrapper.innerHTML = `
+      <div class="standalone-media">
+        <img src="${block.src}" alt="${escapeHtml(block.alt || '')}" class="standalone-image" onclick="openLightbox('${block.src}', '${escapeHtml(block.alt || '')}')">
+        ${block.caption ? `<p class="standalone-caption">${escapeHtml(block.caption)}</p>` : ''}
+      </div>
+    `;
+  } else if (block.type === 'video') {
+    const videoWrapper = createVideoElement(block);
+    wrapper.appendChild(videoWrapper);
+  }
+
+  return wrapper;
+}
+
+/**
  * Create a timeline node element
+ * 新数据结构：支持 contents 数组，内容块可自由排序
  */
 function createTimelineNode(node, index) {
   const article = document.createElement('article');
@@ -42,23 +88,23 @@ function createTimelineNode(node, index) {
   const contentEl = document.createElement('div');
   contentEl.className = 'timeline-content';
 
-  // Create media elements (if any)
-  if (node.media && node.media.length > 0) {
-    const mediaEl = createMediaContainer(node.media);
-    contentEl.appendChild(mediaEl);
+  // Add title if exists
+  if (node.title) {
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'timeline-title';
+    titleEl.textContent = node.title;
+    contentEl.appendChild(titleEl);
   }
 
-  // Create title
-  const titleEl = document.createElement('h3');
-  titleEl.className = 'timeline-title';
-  titleEl.textContent = node.title;
-  contentEl.appendChild(titleEl);
-
-  // Create description
-  const descEl = document.createElement('p');
-  descEl.className = 'timeline-description';
-  descEl.textContent = node.description;
-  contentEl.appendChild(descEl);
+  // Render all content blocks in order
+  if (node.contents && node.contents.length > 0) {
+    node.contents.forEach((contentBlock, contentIndex) => {
+      const blockEl = createContentBlock(contentBlock, node.id, contentIndex);
+      if (blockEl) {
+        contentEl.appendChild(blockEl);
+      }
+    });
+  }
 
   // Assemble the node
   article.appendChild(dateEl);
@@ -68,31 +114,33 @@ function createTimelineNode(node, index) {
 }
 
 /**
- * Create media container with images and videos
+ * Create a content block element (text, image, or video)
  */
-function createMediaContainer(mediaItems) {
-  const container = document.createElement('div');
-  container.className = 'timeline-media';
+function createContentBlock(contentBlock, nodeId, contentIndex) {
+  if (contentBlock.type === 'text') {
+    const textEl = document.createElement('p');
+    textEl.className = 'timeline-text-block';
+    textEl.textContent = contentBlock.content;
+    return textEl;
 
-  mediaItems.forEach(media => {
-    let mediaEl;
+  } else if (contentBlock.type === 'image') {
+    const img = document.createElement('img');
+    img.src = contentBlock.src;
+    img.alt = contentBlock.alt || '';
+    img.className = 'timeline-image';
+    img.loading = 'lazy';
+    img.addEventListener('click', () => openLightbox(contentBlock.src, contentBlock.alt));
+    return img;
 
-    if (media.type === 'image') {
-      mediaEl = createImageElement(media);
-    } else if (media.type === 'video') {
-      mediaEl = createVideoElement(media);
-    }
+  } else if (contentBlock.type === 'video') {
+    return createVideoElement(contentBlock);
+  }
 
-    if (mediaEl) {
-      container.appendChild(mediaEl);
-    }
-  });
-
-  return container;
+  return null;
 }
 
 /**
- * Create an image element with click handler
+ * Create an image element with click handler (legacy, for compatibility)
  */
 function createImageElement(media) {
   const img = document.createElement('img');

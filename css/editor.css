@@ -582,6 +582,160 @@ body.editor-mode .music-upload-section.visible {
   color: var(--text-primary);
 }
 
+/* ========== Content Block Editor ========== */
+/* Content block wrapper */
+.content-block-wrapper {
+  position: relative;
+  margin-bottom: var(--spacing-sm);
+  border: 1px dashed var(--primary-light);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  transition: border-color var(--transition-fast);
+}
+
+body.editor-mode .content-block-wrapper:hover {
+  border-color: var(--primary-color);
+}
+
+/* Content block controls */
+.content-block-controls {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: var(--spacing-xs);
+  z-index: 10;
+  background: white;
+  border-radius: var(--radius-full);
+  padding: 4px;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--primary-light);
+}
+
+body.editor-mode .content-block-wrapper:hover .content-block-controls {
+  display: flex;
+}
+
+.control-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--bg-body);
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.control-btn:hover {
+  background: var(--primary-light);
+  transform: scale(1.1);
+}
+
+.control-btn.danger:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+/* Editable text block */
+.editable-text-block {
+  margin: 0;
+}
+
+.text-block-edit {
+  width: 100%;
+  padding: var(--spacing-xs);
+  border: 1px dashed var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.8);
+  min-height: 80px;
+}
+
+.text-block-edit:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: white;
+}
+
+/* Editable media block */
+.editable-media-block {
+  position: relative;
+  margin: 0;
+}
+
+.replace-btn {
+  display: none;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  z-index: 5;
+  transition: all var(--transition-fast);
+}
+
+.replace-btn:hover {
+  background: var(--primary-color);
+}
+
+body.editor-mode .editable-media-block:hover .replace-btn {
+  display: block;
+}
+
+/* Add block section */
+.add-block-section {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 182, 193, 0.1);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+
+.add-block-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  background: white;
+  border: 2px dashed var(--primary-light);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.add-block-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Timeline text block (view mode) */
+.timeline-text-block {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  margin-bottom: var(--spacing-sm);
+}
+
 /* ========== Responsive ========== */
 @media (max-width: 480px) {
   .editor-toolbar {
@@ -610,5 +764,127 @@ body.editor-mode .music-upload-section.visible {
     width: 28px;
     height: 28px;
     font-size: 12px;
+  }
+}
+
+/* ========== Standalone Block Editor Styles ========== */
+/* 独立内容块编辑模式样式 */
+.standalone-block.editable {
+  border: 2px dashed var(--primary-light);
+  padding: var(--spacing-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.standalone-block.editable:hover {
+  border-color: var(--primary-color);
+}
+
+/* 独立内容块控制条 */
+.standalone-controls {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: var(--spacing-xs);
+  z-index: 10;
+  background: white;
+  border-radius: var(--radius-full);
+  padding: 4px;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--primary-light);
+}
+
+body.editor-mode .standalone-block.editable:hover .standalone-controls {
+  display: flex;
+}
+
+/* 添加独立内容块按钮包装器 */
+.add-standalone-wrapper {
+  margin: 30px 0;
+  padding-left: 80px;
+  text-align: center;
+}
+
+.add-standalone-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(255, 182, 193, 0.3), rgba(255, 232, 238, 0.2));
+  border: 2px dashed var(--primary-light);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.add-standalone-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 独立文字块编辑 */
+.standalone-text.editable {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px dashed var(--primary-light);
+}
+
+.standalone-text-edit {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.8;
+  font-style: italic;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.standalone-text-edit:focus {
+  outline: none;
+  background: white;
+}
+
+/* 独立图片说明编辑 */
+.standalone-caption-edit {
+  width: 100%;
+  margin-top: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  border: 1px dashed var(--primary-light);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.8);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  text-align: center;
+  resize: none;
+}
+
+.standalone-caption-edit:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: white;
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+  .add-standalone-wrapper {
+    padding-left: 60px;
+  }
+
+  .add-standalone-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+  }
+
+  .standalone-block {
+    margin-left: 60px !important;
   }
 }

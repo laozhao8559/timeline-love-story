@@ -202,10 +202,10 @@
   border-radius: var(--radius-sm);
 }
 
-/* Timeline nodes */
+/* Timeline nodes - 增加节点间距，给情绪呼吸空间 */
 .timeline-node {
   position: relative;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 60px;
   padding-left: 60px;
 }
 
@@ -378,6 +378,81 @@
   margin-top: var(--spacing-lg);
 }
 
+/* ========== Standalone Content Blocks ========== */
+/**
+ * 独立内容块 - 插入在节点之间的自由内容
+ * 不依附于任何节点，可以独立添加文字/图片/视频
+ */
+.standalone-block {
+  position: relative;
+  margin: 40px 0 40px 80px;
+  padding-left: var(--spacing-md);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+}
+
+.standalone-block.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 独立内容块的装饰点 */
+.standalone-block::before {
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--primary-light);
+  border-radius: var(--radius-full);
+  z-index: 1;
+  box-shadow: 0 0 0 3px var(--bg-body);
+}
+
+/* 独立文字块 */
+.standalone-text {
+  background: linear-gradient(135deg, rgba(255, 182, 193, 0.15), rgba(255, 232, 238, 0.1));
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary-light);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.8;
+  font-style: italic;
+}
+
+/* 独立媒体块 */
+.standalone-media {
+  padding: var(--spacing-sm);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.standalone-image {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
+  aspect-ratio: 16 / 9;
+}
+
+.standalone-image:active {
+  transform: scale(0.98);
+}
+
+.standalone-caption {
+  margin-top: var(--spacing-sm);
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  font-style: italic;
+}
+
 /* Timeline footer */
 .timeline-footer {
   text-align: center;
@@ -419,41 +494,29 @@
   }
 }
 
-/* Large screens - Alternate layout */
+/* Large screens - Single column layout (line on left, content on right) */
 @media (min-width: 768px) {
   .timeline-container {
+    max-width: 700px;
     padding: var(--spacing-lg) var(--spacing-xl);
   }
 
+  /* Line stays on left */
   .timeline-line {
-    left: 50%;
-    transform: translateX(-50%);
+    left: 40px;
   }
 
+  /* All content on right side */
   .timeline-node {
-    padding-left: 0;
-    width: 50%;
+    padding-left: 90px;
   }
 
-  .timeline-node:nth-child(odd) {
-    margin-left: auto;
-    padding-right: 60px;
-  }
-
-  .timeline-node:nth-child(even) {
-    margin-right: auto;
-    padding-left: 60px;
-  }
-
+  /* Dot position */
   .timeline-node::before {
-    left: auto;
+    left: 31px;
   }
 
-  .timeline-node:nth-child(odd)::before {
-    right: -12px;
-  }
-
-  .timeline-node:nth-child(even)::before {
-    left: -12px;
+  .timeline-node.highlight::before {
+    left: 28px;
   }
 }

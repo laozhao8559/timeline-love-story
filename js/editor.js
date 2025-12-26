@@ -6,11 +6,13 @@
 // ========== State ==========
 let editorMode = false;
 let editingData = [];
+let editingStandaloneBlocks = []; // 独立内容块
 let objectURLs = []; // Track object URLs for cleanup
 
 // ========== LocalStorage Keys ==========
 const STORAGE_KEYS = {
   TIMELINE_DATA: 'timeline_data',
+  STANDALONE_BLOCKS: 'standalone_blocks',
   ENDING_CONFIG: 'ending_config',
   MUSIC_DATA: 'music_data',
   EDITOR_MODE: 'editor_mode'
@@ -46,6 +48,7 @@ const StorageManager = {
 
   clearAll() {
     localStorage.removeItem(STORAGE_KEYS.TIMELINE_DATA);
+    localStorage.removeItem(STORAGE_KEYS.STANDALONE_BLOCKS);
     localStorage.removeItem(STORAGE_KEYS.ENDING_CONFIG);
     localStorage.removeItem(STORAGE_KEYS.MUSIC_DATA);
   },
@@ -121,6 +124,10 @@ function enterEditMode() {
   const savedData = StorageManager.load(STORAGE_KEYS.TIMELINE_DATA);
   editingData = savedData || cloneTimelineData();
 
+  // Load saved standalone blocks
+  const savedBlocks = StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS);
+  editingStandaloneBlocks = savedBlocks || [];
+
   // Re-render timeline with edit controls
   renderTimelineWithEditControls();
   updateStorageIndicator();
@@ -130,38 +137,14 @@ function enterEditMode() {
  * Exit edit mode
  */
 function exitEditMode() {
-  // Re-render in view mode
-  const container = document.getElementById('timeline-nodes');
-  if (!container) return;
+  // 更新全局 standaloneBlocks 变量以供渲染使用
+  const savedBlocks = StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS) || editingStandaloneBlocks;
+  if (typeof window !== 'undefined') {
+    window.standaloneBlocks = savedBlocks;
+  }
 
-  container.innerHTML = '';
-
-  // Use saved data
-  const savedData = StorageManager.load(STORAGE_KEYS.TIMELINE_DATA) || editingData;
-  savedData.forEach((node, index) => {
-    const nodeEl = createTimelineNode(node, index);
-    container.appendChild(nodeEl);
-  });
-
-  // Render ending
-  const endingConfig = StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig;
-  const endingEl = document.createElement('section');
-  endingEl.className = 'timeline-ending';
-  endingEl.innerHTML = `
-    <div class="ending-content">
-      <div class="ending-icon">💕</div>
-      <h2 class="ending-message">${escapeHtml(endingConfig.message)}</h2>
-      <div class="ending-signature">
-        <p>${escapeHtml(endingConfig.signature)}</p>
-        <p class="ending-name">${escapeHtml(endingConfig.name)}</p>
-        <p class="ending-date">${escapeHtml(endingConfig.date)}</p>
-      </div>
-      <div class="ending-hearts">
-        <span>❤</span><span>❤</span><span>❤</span>
-      </div>
-    </div>
-  `;
-  container.appendChild(endingEl);
+  // 使用 initTimeline 重新渲染（它会读取 standaloneBlocks 和 ending）
+  initTimeline();
 
   // Cleanup object URLs
   cleanupObjectURLs();
@@ -177,6 +160,7 @@ function cloneTimelineData() {
 // ========== Render with Edit Controls ==========
 /**
  * Render timeline with edit controls
+ * 支持独立内容块渲染
  */
 function renderTimelineWithEditControls() {
   const container = document.getElementById('timeline-nodes');
@@ -184,9 +168,35 @@ function renderTimelineWithEditControls() {
 
   container.innerHTML = '';
 
+  // 获取独立内容块数据
+  const standaloneData = editingStandaloneBlocks || [];
+
+  // 先渲染 insertAfter: -1 的内容块（最前面）
+  const headBlocks = standaloneData.filter(b => b.insertAfter === -1);
+  headBlocks.forEach((block, blockIndex) => {
+    const blockEl = createEditableStandaloneBlock(block, blockIndex, -1);
+    container.appendChild(blockEl);
+  });
+
+  // 添加"在最前面添加内容"按钮
+  const addHeadBtn = createAddStandaloneButton(-1);
+  container.appendChild(addHeadBtn);
+
+  // 渲染所有时间轴节点，并在节点之间插入独立内容块
   editingData.forEach((node, index) => {
     const nodeEl = createEditableNode(node, index);
     container.appendChild(nodeEl);
+
+    // 添加"在此之后添加内容"按钮
+    const addBtn = createAddStandaloneButton(index);
+    container.appendChild(addBtn);
+
+    // 查找并渲染在当前节点之后的独立内容块
+    const afterBlocks = standaloneData.filter(b => b.insertAfter === index);
+    afterBlocks.forEach((block, blockIndex) => {
+      const blockEl = createEditableStandaloneBlock(block, blockIndex, index);
+      container.appendChild(blockEl);
+    });
   });
 
   // Add "Add Node" button
@@ -205,7 +215,240 @@ function renderTimelineWithEditControls() {
 }
 
 /**
+ * Create "Add Standalone Block" button
+ * 在指定节点后添加独立内容块的按钮
+ */
+function createAddStandaloneButton(insertAfterIndex) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'add-standalone-wrapper';
+  wrapper.innerHTML = `
+    <button class="add-standalone-btn" onclick="showAddStandaloneMenu(${insertAfterIndex})">
+      <span>✨</span> 在此添加内容
+    </button>
+  `;
+  return wrapper;
+}
+
+/**
+ * Show menu to add standalone block
+ */
+function showAddStandaloneMenu(insertAfterIndex) {
+  const choice = confirm(
+    '选择要添加的内容类型：\n\n' +
+    '点击「确定」添加文字\n' +
+    '点击「取消」添加图片/视频'
+  );
+
+  if (choice) {
+    // 添加文字
+    addStandaloneBlock(insertAfterIndex, 'text');
+  } else {
+    // 添加图片/视频
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.onchange = (e) => {
+      if (e.target.files.length > 0) {
+        handleStandaloneFileUpload(e.target.files[0], insertAfterIndex);
+      }
+    };
+    input.click();
+  }
+}
+
+/**
+ * Add a new standalone block
+ */
+function addStandaloneBlock(insertAfterIndex, type, data = {}) {
+  if (!editingStandaloneBlocks) {
+    editingStandaloneBlocks = [];
+  }
+
+  const newBlock = {
+    id: 'standalone_' + Date.now(),
+    type: type,
+    insertAfter: insertAfterIndex
+  };
+
+  if (type === 'text') {
+    newBlock.content = '在这里写下你的心情...';
+  } else if (type === 'image') {
+    newBlock.src = data.src;
+    newBlock.alt = data.alt || '';
+    newBlock.caption = data.caption || '';
+  } else if (type === 'video') {
+    newBlock.src = data.src;
+    newBlock.poster = data.poster || '';
+  }
+
+  editingStandaloneBlocks.push(newBlock);
+  saveData();
+  renderTimelineWithEditControls();
+  showToast('已添加', 'success');
+}
+
+/**
+ * Handle standalone block file upload
+ */
+function handleStandaloneFileUpload(file, insertAfterIndex) {
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+
+  if (!isImage && !isVideo) {
+    showToast('请选择图片或视频文件', 'error');
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  objectURLs.push(objectUrl);
+
+  const data = {
+    src: objectUrl
+  };
+
+  if (isImage) {
+    data.alt = file.name;
+    addStandaloneBlock(insertAfterIndex, 'image', data);
+  } else {
+    addStandaloneBlock(insertAfterIndex, 'video', data);
+  }
+}
+
+/**
+ * Create an editable standalone block
+ */
+function createEditableStandaloneBlock(block, blockIndex, insertAfterIndex) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'standalone-block editable';
+  wrapper.dataset.blockId = block.id;
+
+  // Control bar
+  const controlBar = document.createElement('div');
+  controlBar.className = 'standalone-controls';
+  controlBar.innerHTML = `
+    <button class="control-btn" onclick="moveStandaloneBlock('${block.id}', -1)" title="上移">↑</button>
+    <button class="control-btn" onclick="moveStandaloneBlock('${block.id}', 1)" title="下移">↓</button>
+    <button class="control-btn danger" onclick="deleteStandaloneBlock('${block.id}')" title="删除">🗑️</button>
+  `;
+  wrapper.appendChild(controlBar);
+
+  if (block.type === 'text') {
+    const textEl = document.createElement('div');
+    textEl.className = 'standalone-text editable';
+    textEl.innerHTML = `<textarea class="standalone-text-edit" rows="4"
+      onchange="updateStandaloneBlock('${block.id}', 'content', this.value)"
+      placeholder="在这里写下你的心情...">${escapeHtml(block.content || '')}</textarea>`;
+    wrapper.appendChild(textEl);
+  } else if (block.type === 'image') {
+    wrapper.innerHTML += `
+      <div class="standalone-media">
+        <img src="${block.src}" alt="${escapeHtml(block.alt || '')}" class="standalone-image">
+        <button class="replace-btn" onclick="replaceStandaloneMedia('${block.id}')">🔄 替换</button>
+        <textarea class="standalone-caption-edit" rows="1" placeholder="添加说明文字..."
+          onchange="updateStandaloneBlock('${block.id}', 'caption', this.value)">${escapeHtml(block.caption || '')}</textarea>
+      </div>
+    `;
+  } else if (block.type === 'video') {
+    wrapper.innerHTML += `
+      <div class="standalone-media">
+        <div class="video-wrapper">
+          <video src="${block.src}" poster="${block.poster || ''}" class="timeline-video"></video>
+          <div class="video-play-overlay"><span class="play-icon">▶</span></div>
+        </div>
+        <button class="replace-btn" onclick="replaceStandaloneMedia('${block.id}')">🔄 替换</button>
+      </div>
+    `;
+  }
+
+  return wrapper;
+}
+
+/**
+ * Update standalone block field
+ */
+function updateStandaloneBlock(blockId, field, value) {
+  const block = editingStandaloneBlocks.find(b => b.id === blockId);
+  if (block) {
+    block[field] = value;
+    saveData();
+  }
+}
+
+/**
+ * Delete standalone block
+ */
+function deleteStandaloneBlock(blockId) {
+  if (confirm('确定要删除这个内容吗？')) {
+    const index = editingStandaloneBlocks.findIndex(b => b.id === blockId);
+    if (index > -1) {
+      editingStandaloneBlocks.splice(index, 1);
+      saveData();
+      renderTimelineWithEditControls();
+      showToast('已删除', 'success');
+    }
+  }
+}
+
+/**
+ * Move standalone block (change insertAfter position)
+ */
+function moveStandaloneBlock(blockId, direction) {
+  const block = editingStandaloneBlocks.find(b => b.id === blockId);
+  if (!block) return;
+
+  const newPosition = block.insertAfter + direction;
+  const maxPosition = editingData.length - 1;
+
+  if (newPosition < -1 || newPosition > maxPosition) {
+    showToast('已到边界', 'info');
+    return;
+  }
+
+  block.insertAfter = newPosition;
+  saveData();
+  renderTimelineWithEditControls();
+  showToast(direction < 0 ? '已上移' : '已下移', 'success');
+}
+
+/**
+ * Replace standalone media
+ */
+function replaceStandaloneMedia(blockId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,video/*';
+  input.onchange = (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const isImage = file.type.startsWith('image/');
+
+      const objectUrl = URL.createObjectURL(file);
+      objectURLs.push(objectUrl);
+
+      const block = editingStandaloneBlocks.find(b => b.id === blockId);
+      if (block) {
+        if (isImage) {
+          block.type = 'image';
+          block.src = objectUrl;
+          block.alt = file.name;
+        } else {
+          block.type = 'video';
+          block.src = objectUrl;
+          block.poster = '';
+        }
+
+        saveData();
+        renderTimelineWithEditControls();
+        showToast('已替换', 'success');
+      }
+    }
+  };
+  input.click();
+}
+
+/**
  * Create an editable timeline node
+ * 新数据结构：支持 contents 数组，内容块可自由增删改排序
  */
 function createEditableNode(node, index) {
   const article = document.createElement('article');
@@ -216,8 +459,8 @@ function createEditableNode(node, index) {
   const toolbar = document.createElement('div');
   toolbar.className = 'edit-toolbar';
   toolbar.innerHTML = `
-    <button class="edit-toolbar-btn" onclick="openFileUpload(${index})" title="上传图片/视频">📷</button>
-    <button class="edit-toolbar-btn" onclick="toggleTextEdit(${index})" title="编辑文字">✏️</button>
+    <button class="edit-toolbar-btn" onclick="addContentBlock(${index}, 'text')" title="添加文字">📝</button>
+    <button class="edit-toolbar-btn" onclick="openFileUpload(${index})" title="添加图片/视频">📷</button>
     <button class="edit-toolbar-btn" onclick="moveNode(${index}, -1)" title="上移">↑</button>
     <button class="edit-toolbar-btn" onclick="moveNode(${index}, 1)" title="下移">↓</button>
     <button class="edit-toolbar-btn danger" onclick="deleteNode(${index})" title="删除">🗑️</button>
@@ -238,80 +481,89 @@ function createEditableNode(node, index) {
   `;
   article.appendChild(dateEl);
 
-  // Content
+  // Content container
   const contentEl = document.createElement('div');
   contentEl.className = 'timeline-content';
 
-  // Media
-  if (node.media && node.media.length > 0) {
-    const mediaEl = createEditableMedia(node.media, index);
-    contentEl.appendChild(mediaEl);
-  }
-
-  // Add media button
-  const addMediaBtn = document.createElement('div');
-  addMediaBtn.className = 'add-media-btn';
-  addMediaBtn.innerHTML = `
-    <span class="upload-icon">📷</span>
-    <span class="upload-text">添加图片/视频</span>
-  `;
-  addMediaBtn.onclick = () => openFileUpload(index);
-  contentEl.appendChild(addMediaBtn);
-
-  // Title (editable)
+  // Title (editable, optional)
   const titleEl = document.createElement('h3');
   titleEl.className = 'timeline-title editable-field';
   titleEl.innerHTML = `<textarea class="timeline-title-edit" rows="1"
-    onchange="updateNodeField(${index}, 'title', this.value)">${escapeHtml(node.title)}</textarea>`;
-
-  // Description (editable)
-  const descEl = document.createElement('p');
-  descEl.className = 'timeline-description editable-field';
-  descEl.innerHTML = `<textarea class="timeline-description-edit" rows="2"
-    onchange="updateNodeField(${index}, 'description', this.value)">${escapeHtml(node.description)}</textarea>`;
-
+    onchange="updateNodeField(${index}, 'title', this.value)" placeholder="标题（可选）">${escapeHtml(node.title || '')}</textarea>`;
   contentEl.appendChild(titleEl);
-  contentEl.appendChild(descEl);
+
+  // Render all content blocks
+  if (node.contents && node.contents.length > 0) {
+    node.contents.forEach((contentBlock, contentIndex) => {
+      const blockEl = createEditableContentBlock(contentBlock, index, contentIndex);
+      contentEl.appendChild(blockEl);
+    });
+  }
+
+  // Add content block buttons
+  const addBlockSection = document.createElement('div');
+  addBlockSection.className = 'add-block-section';
+  addBlockSection.innerHTML = `
+    <button class="add-block-btn" onclick="addContentBlock(${index}, 'text')">📝 文字</button>
+    <button class="add-block-btn" onclick="openFileUpload(${index})">📷 图片/视频</button>
+  `;
+  contentEl.appendChild(addBlockSection);
+
   article.appendChild(contentEl);
 
   return article;
 }
 
 /**
- * Create editable media items
+ * Create an editable content block
  */
-function createEditableMedia(mediaItems, nodeIndex) {
-  const container = document.createElement('div');
-  container.className = 'timeline-media';
+function createEditableContentBlock(contentBlock, nodeIndex, contentIndex) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'content-block-wrapper';
+  wrapper.dataset.nodeIndex = nodeIndex;
+  wrapper.dataset.contentIndex = contentIndex;
 
-  mediaItems.forEach((media, mediaIndex) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'media-item';
+  // Control bar for this block
+  const controlBar = document.createElement('div');
+  controlBar.className = 'content-block-controls';
+  controlBar.innerHTML = `
+    <button class="control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, -1)" title="上移">↑</button>
+    <button class="control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, 1)" title="下移">↓</button>
+    <button class="control-btn danger" onclick="deleteContentBlock(${nodeIndex}, ${contentIndex})" title="删除">🗑️</button>
+  `;
+  wrapper.appendChild(controlBar);
 
-    let element;
-    if (media.type === 'image') {
-      element = document.createElement('img');
-      element.src = media.src;
-      element.alt = media.alt || '';
-      element.className = 'timeline-image';
-    } else if (media.type === 'video') {
-      element = createVideoElement(media);
-    }
+  if (contentBlock.type === 'text') {
+    const textEl = document.createElement('div');
+    textEl.className = 'editable-text-block';
+    textEl.innerHTML = `<textarea class="text-block-edit" rows="3"
+      onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'content', this.value)"
+      placeholder="输入文字...">${escapeHtml(contentBlock.content || '')}</textarea>`;
+    wrapper.appendChild(textEl);
 
-    // Actions overlay
-    const actions = document.createElement('div');
-    actions.className = 'media-actions-overlay';
-    actions.innerHTML = `
-      <button class="media-action-btn" onclick="replaceMedia(${nodeIndex}, ${mediaIndex})" title="替换">🔄</button>
-      <button class="media-action-btn danger" onclick="deleteMedia(${nodeIndex}, ${mediaIndex})" title="删除">🗑️</button>
+  } else if (contentBlock.type === 'image') {
+    const imgWrapper = document.createElement('div');
+    imgWrapper.className = 'editable-media-block';
+    imgWrapper.innerHTML = `
+      <img src="${contentBlock.src}" alt="${escapeHtml(contentBlock.alt || '')}" class="timeline-image">
+      <button class="replace-btn" onclick="replaceMedia(${nodeIndex}, ${contentIndex})">🔄 替换</button>
     `;
+    wrapper.appendChild(imgWrapper);
 
-    wrapper.appendChild(element);
-    wrapper.appendChild(actions);
-    container.appendChild(wrapper);
-  });
+  } else if (contentBlock.type === 'video') {
+    const videoWrapper = document.createElement('div');
+    videoWrapper.className = 'editable-media-block';
+    videoWrapper.innerHTML = `
+      <div class="video-wrapper">
+        <video src="${contentBlock.src}" poster="${contentBlock.poster || ''}" class="timeline-video"></video>
+        <div class="video-play-overlay"><span class="play-icon">▶</span></div>
+      </div>
+      <button class="replace-btn" onclick="replaceMedia(${nodeIndex}, ${contentIndex})">🔄 替换</button>
+    `;
+    wrapper.appendChild(videoWrapper);
+  }
 
-  return container;
+  return wrapper;
 }
 
 /**
@@ -387,15 +639,20 @@ function deleteNode(index) {
 
 /**
  * Add a new node
+ * 新数据结构：使用 contents 数组
  */
 function addNewNode() {
   const newNode = {
     id: Date.now(),
     date: '新日期',
     title: '新标题',
-    description: '在这里添加描述...',
-    media: [],
-    isHighlight: false
+    isHighlight: false,
+    contents: [
+      {
+        type: 'text',
+        content: '在这里添加你的故事...'
+      }
+    ]
   };
 
   editingData.push(newNode);
@@ -413,9 +670,67 @@ function addNewNode() {
   }, 100);
 }
 
+// ========== Content Block Operations ==========
+/**
+ * Add a new content block to a node
+ */
+function addContentBlock(nodeIndex, type) {
+  const node = editingData[nodeIndex];
+  if (!node.contents) {
+    node.contents = [];
+  }
+
+  if (type === 'text') {
+    node.contents.push({
+      type: 'text',
+      content: ''
+    });
+  }
+
+  saveData();
+  renderTimelineWithEditControls();
+  showToast('已添加' + (type === 'text' ? '文字' : '媒体'), 'success');
+}
+
+/**
+ * Update a content block field
+ */
+function updateContentBlock(nodeIndex, contentIndex, field, value) {
+  editingData[nodeIndex].contents[contentIndex][field] = value;
+  saveData();
+}
+
+/**
+ * Delete a content block
+ */
+function deleteContentBlock(nodeIndex, contentIndex) {
+  if (confirm('确定要删除这个内容块吗？')) {
+    editingData[nodeIndex].contents.splice(contentIndex, 1);
+    saveData();
+    renderTimelineWithEditControls();
+    showToast('已删除', 'success');
+  }
+}
+
+/**
+ * Move a content block up or down
+ */
+function moveContentBlock(nodeIndex, contentIndex, direction) {
+  const contents = editingData[nodeIndex].contents;
+  const newIndex = contentIndex + direction;
+
+  if (newIndex < 0 || newIndex >= contents.length) return;
+
+  // Swap
+  [contents[contentIndex], contents[newIndex]] = [contents[newIndex], contents[contentIndex]];
+  saveData();
+  renderTimelineWithEditControls();
+  showToast(direction < 0 ? '已上移' : '已下移', 'success');
+}
+
 // ========== Media Operations ==========
 /**
- * Open file upload dialog
+ * Open file upload dialog - 添加到 contents 数组
  */
 function openFileUpload(nodeIndex) {
   const input = document.createElement('input');
@@ -430,9 +745,9 @@ function openFileUpload(nodeIndex) {
 }
 
 /**
- * Replace existing media
+ * Replace existing media - 替换 contents 数组中的媒体
  */
-function replaceMedia(nodeIndex, mediaIndex) {
+function replaceMedia(nodeIndex, contentIndex) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*,video/*';
@@ -440,18 +755,28 @@ function replaceMedia(nodeIndex, mediaIndex) {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
       const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
 
       // Create object URL for preview
       const objectUrl = URL.createObjectURL(file);
       objectURLs.push(objectUrl);
 
-      const mediaItem = {
-        type: isImage ? 'image' : 'video',
-        src: objectUrl,
-        alt: isImage ? file.name : ''
-      };
+      const currentBlock = editingData[nodeIndex].contents[contentIndex];
 
-      editingData[nodeIndex].media[mediaIndex] = mediaItem;
+      if (isImage) {
+        editingData[nodeIndex].contents[contentIndex] = {
+          type: 'image',
+          src: objectUrl,
+          alt: file.name
+        };
+      } else if (isVideo) {
+        editingData[nodeIndex].contents[contentIndex] = {
+          type: 'video',
+          src: objectUrl,
+          poster: currentBlock.poster || ''
+        };
+      }
+
       saveData();
       renderTimelineWithEditControls();
       showToast('已替换', 'success');
@@ -461,19 +786,7 @@ function replaceMedia(nodeIndex, mediaIndex) {
 }
 
 /**
- * Delete media
- */
-function deleteMedia(nodeIndex, mediaIndex) {
-  if (confirm('确定要删除这个媒体吗？')) {
-    editingData[nodeIndex].media.splice(mediaIndex, 1);
-    saveData();
-    renderTimelineWithEditControls();
-    showToast('已删除', 'success');
-  }
-}
-
-/**
- * Handle file upload using URL.createObjectURL
+ * Handle file upload using URL.createObjectURL - 添加到 contents 数组
  */
 function handleFileUpload(file, nodeIndex) {
   const isImage = file.type.startsWith('image/');
@@ -488,16 +801,24 @@ function handleFileUpload(file, nodeIndex) {
   const objectUrl = URL.createObjectURL(file);
   objectURLs.push(objectUrl);
 
-  const mediaItem = {
-    type: isImage ? 'image' : 'video',
-    src: objectUrl,
-    alt: isImage ? file.name : ''
-  };
-
-  if (!editingData[nodeIndex].media) {
-    editingData[nodeIndex].media = [];
+  const node = editingData[nodeIndex];
+  if (!node.contents) {
+    node.contents = [];
   }
-  editingData[nodeIndex].media.push(mediaItem);
+
+  if (isImage) {
+    node.contents.push({
+      type: 'image',
+      src: objectUrl,
+      alt: file.name
+    });
+  } else if (isVideo) {
+    node.contents.push({
+      type: 'video',
+      src: objectUrl,
+      poster: ''
+    });
+  }
 
   saveData();
   renderTimelineWithEditControls();
@@ -526,18 +847,28 @@ function updateEndingField(field, value) {
 // ========== Save/Load ==========
 /**
  * Save data to localStorage
+ * 同时保存时间轴节点和独立内容块
  */
 function saveData() {
   StorageManager.save(STORAGE_KEYS.TIMELINE_DATA, editingData);
+  StorageManager.save(STORAGE_KEYS.STANDALONE_BLOCKS, editingStandaloneBlocks || []);
+
+  // 更新全局 standaloneBlocks 变量
+  if (typeof window !== 'undefined') {
+    window.standaloneBlocks = editingStandaloneBlocks || [];
+  }
+
   updateStorageIndicator();
 }
 
 /**
  * Export data
+ * 包含独立内容块
  */
 function exportData() {
   const data = {
     timeline: StorageManager.load(STORAGE_KEYS.TIMELINE_DATA),
+    standaloneBlocks: StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS),
     ending: StorageManager.load(STORAGE_KEYS.ENDING_CONFIG),
     music: StorageManager.load(STORAGE_KEYS.MUSIC_DATA),
     exportedAt: new Date().toISOString()
@@ -557,6 +888,7 @@ function exportData() {
 
 /**
  * Import data
+ * 包含独立内容块
  */
 function importData() {
   const input = document.createElement('input');
@@ -571,6 +903,7 @@ function importData() {
       const data = JSON.parse(text);
 
       if (data.timeline) StorageManager.save(STORAGE_KEYS.TIMELINE_DATA, data.timeline);
+      if (data.standaloneBlocks) StorageManager.save(STORAGE_KEYS.STANDALONE_BLOCKS, data.standaloneBlocks);
       if (data.ending) StorageManager.save(STORAGE_KEYS.ENDING_CONFIG, data.ending);
       if (data.music) StorageManager.save(STORAGE_KEYS.MUSIC_DATA, data.music);
 
