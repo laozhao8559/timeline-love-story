@@ -12,6 +12,8 @@
 @import './layout.css';
 @import './components.css';
 @import './animations.css';
+@import './editor.css';
+@import './proposal.css';
 
 /* Global styles */
 body {

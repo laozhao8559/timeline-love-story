@@ -63,16 +63,18 @@ function createLightbox() {
 // ========== Music Player ==========
 let bgMusic = null;
 let isMusicPlaying = false;
-let hasInteracted = false;
 
 /**
  * Initialize music player
+ * - Does NOT autoplay
+ * - Waits for user to click the music button
+ * - Volume set to 0.35
  */
 function initMusic() {
   bgMusic = document.createElement('audio');
   bgMusic.src = 'js/assets/music/bg-music.mp3';
   bgMusic.loop = true;
-  bgMusic.volume = 0.5;
+  bgMusic.volume = 0.35; // Softer initial volume
 
   const toggleBtn = document.getElementById('music-toggle');
   if (toggleBtn) {
@@ -89,45 +91,8 @@ function initMusic() {
     updateMusicUI();
   });
 
-  // Try autoplay
-  attemptAutoPlay();
-
-  // Set up first interaction handler
-  setupFirstInteraction();
-}
-
-/**
- * Attempt to autoplay music
- */
-function attemptAutoPlay() {
-  if (!bgMusic) return;
-
-  const playPromise = bgMusic.play();
-
-  if (playPromise !== undefined) {
-    playPromise.catch(() => {
-      console.log('Autoplay blocked, waiting for user interaction');
-    });
-  }
-}
-
-/**
- * Set up first interaction handler for music
- */
-function setupFirstInteraction() {
-  const onFirstInteraction = () => {
-    if (!hasInteracted) {
-      hasInteracted = true;
-      if (bgMusic && bgMusic.paused) {
-        bgMusic.play().catch(() => {
-          console.log('Music play failed after interaction');
-        });
-      }
-    }
-  };
-
-  document.addEventListener('touchstart', onFirstInteraction, { once: true });
-  document.addEventListener('click', onFirstInteraction, { once: true });
+  // Set initial UI state (muted)
+  updateMusicUI();
 }
 
 /**
@@ -161,14 +126,6 @@ function updateMusicUI() {
   }
 }
 
-// ========== WeixinJSBridge (legacy WeChat support) ==========
-document.addEventListener('WeixinJSBridgeReady', () => {
-  if (bgMusic && bgMusic.paused) {
-    bgMusic.play().catch(() => {
-      console.log('WeixinJSBridge autoplay failed');
-    });
-  }
-}, false);
 
 // ========== Choice Page Buttons ==========
 /**
@@ -183,7 +140,7 @@ function initChoiceButtons() {
   let noClickCount = 0;
 
   btnYes.addEventListener('click', () => {
-    transitionToPage('confirm');
+    transitionToPage('proposal');
   });
 
   btnNo.addEventListener('click', () => {
@@ -202,7 +159,7 @@ function initChoiceButtons() {
       btnNo.style.transform = 'translateX(0)';
 
       btnNo.addEventListener('click', () => {
-        transitionToPage('confirm');
+        transitionToPage('proposal');
       }, { once: true });
     }
   });

@@ -46,18 +46,39 @@
     </div>
   </div>
 
-  <!-- ========== Confirm Page ========== -->
-  <div id="confirm-page" class="page hidden">
-    <div class="confirm-content">
-      <div class="confirm-icon">✨</div>
-      <h2>那让我们开始吧</h2>
-      <p>从相识到现在，每一个瞬间都值得珍藏</p>
-      <div class="countdown">3</div>
+  <!-- ========== Proposal Choice Page ========== -->
+  <div id="proposal-page" class="page hidden">
+    <div class="proposal-container">
+      <h2 class="proposal-title">
+        👉「假如下面几个人同时向你求婚，<br>你会选择嫁给谁？」
+      </h2>
+
+      <div class="avatar-grid" id="avatar-grid">
+        <!-- Avatars will be dynamically generated -->
+      </div>
     </div>
+
+    <!-- Success Overlay -->
+    <div class="success-overlay" id="success-overlay">
+      <div class="success-content">
+        <div class="success-icon">💕</div>
+        <p class="success-message" id="success-message"></p>
+      </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div class="confetti-container" id="confetti-container"></div>
   </div>
 
   <!-- ========== Timeline Page ========== -->
   <div id="timeline-page" class="page hidden">
+    <!-- Editor Mode Toggle -->
+    <div class="editor-mode-toggle">
+      <button class="btn-editor-toggle" onclick="toggleEditorMode()">
+        进入编辑
+      </button>
+    </div>
+
     <!-- Music Controller -->
     <div id="music-controller" class="music-controller">
       <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
@@ -72,6 +93,20 @@
         <p class="timeline-subtitle">从2021到2025，一路有你</p>
       </header>
 
+      <!-- Music Upload Section (Editor Mode) -->
+      <section class="music-upload-section">
+        <h3>🎵 背景音乐</h3>
+        <div class="music-current">
+          <div class="music-current-info">
+            <div class="music-current-name">未上传音乐</div>
+            <div class="music-current-size">-</div>
+          </div>
+        </div>
+        <button class="btn-music-upload" id="btn-upload-music">
+          <span>📤</span> 上传音乐文件
+        </button>
+      </section>
+
       <main class="timeline">
         <div class="timeline-line"></div>
         <div id="timeline-nodes" class="timeline-nodes">
@@ -83,6 +118,28 @@
         <p>💕 爱你每一天 💕</p>
       </footer>
     </div>
+
+    <!-- Editor Toolbar -->
+    <div class="editor-toolbar">
+      <div class="editor-toolbar-section">
+        <span class="storage-indicator">存储: 0 B / ~5MB</span>
+      </div>
+      <div class="editor-toolbar-divider"></div>
+      <div class="editor-toolbar-section">
+        <button class="btn-toolbar btn-toolbar-primary" id="btn-export">
+          <span>📥</span> <span class="toolbar-label">导出数据</span>
+        </button>
+        <button class="btn-toolbar btn-toolbar-secondary" id="btn-import">
+          <span>📤</span> <span class="toolbar-label">导入数据</span>
+        </button>
+        <button class="btn-toolbar btn-toolbar-secondary" id="btn-clear">
+          <span>🗑️</span> <span class="toolbar-label">清除</span>
+        </button>
+        <button class="btn-toolbar btn-toolbar-secondary" id="btn-reset">
+          <span>🔄</span> <span class="toolbar-label">重置</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- JavaScript -->
@@ -90,6 +147,7 @@
   <script src="js/timeline.js"></script>
   <script src="js/interactions.js"></script>
   <script src="js/observer.js"></script>
+  <script src="js/editor.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

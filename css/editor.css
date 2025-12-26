@@ -1,0 +1,556 @@
+/**
+ * Editor Mode Styles
+ * 浮层控制台编辑模式
+ */
+
+/* ========== Editor Mode Toggle ========== */
+.editor-mode-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: none;
+}
+
+.editor-mode-toggle.visible {
+  display: block;
+}
+
+.btn-editor-toggle {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--primary-color);
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.btn-editor-toggle:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* ========== Editor Mode Body ========== */
+body.editor-mode {
+  padding-bottom: 60px;
+}
+
+body.editor-mode .editor-mode-toggle .btn-editor-toggle {
+  background: var(--primary-color);
+  color: white;
+}
+
+body.editor-mode .music-controller {
+  top: 70px;
+}
+
+/* ========== Node Edit Toolbar (Floating) ========== */
+.timeline-node .edit-toolbar {
+  display: none;
+}
+
+body.editor-mode .timeline-node {
+  position: relative;
+}
+
+body.editor-mode .timeline-node .edit-toolbar {
+  display: flex;
+  position: absolute;
+  top: -16px;
+  right: var(--spacing-sm);
+  z-index: 100;
+  background: white;
+  border-radius: var(--radius-full);
+  padding: 4px;
+  gap: 4px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary-light);
+}
+
+body.editor-mode .timeline-node.highlight .edit-toolbar {
+  border-color: var(--accent-color);
+}
+
+.edit-toolbar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--bg-body);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.edit-toolbar-btn:hover {
+  background: var(--primary-light);
+  transform: scale(1.1);
+}
+
+.edit-toolbar-btn.danger:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+/* ========== Editable Content ========== */
+.timeline-node .editable-field {
+  position: relative;
+}
+
+body.editor-mode .timeline-node .editable-field {
+  border: 1px dashed transparent;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  transition: border-color var(--transition-fast);
+}
+
+body.editor-mode .timeline-node .editable-field:hover {
+  border-color: var(--primary-light);
+  background: rgba(255, 182, 193, 0.05);
+}
+
+/* Textarea for editing */
+.timeline-title-edit,
+.timeline-description-edit,
+.date-edit-input {
+  width: 100%;
+  padding: var(--spacing-xs);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: inherit;
+  resize: vertical;
+  background: white;
+}
+
+.timeline-title-edit {
+  font-weight: 600;
+  min-height: 40px;
+}
+
+.timeline-description-edit {
+  min-height: 80px;
+  line-height: 1.6;
+}
+
+.date-edit-input {
+  font-size: var(--font-size-sm);
+  color: var(--primary-dark);
+  font-weight: 600;
+  padding: 4px 8px;
+  min-height: 32px;
+}
+
+/* Highlight checkbox */
+.highlight-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.highlight-checkbox-wrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* ========== Media Item Actions ========== */
+.timeline-media .media-item {
+  position: relative;
+}
+
+body.editor-mode .timeline-media .media-item {
+  border: 2px dashed transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+
+body.editor-mode .timeline-media .media-item:hover {
+  border-color: var(--primary-light);
+}
+
+.media-actions-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 4px;
+  z-index: 10;
+}
+
+body.editor-mode .timeline-media .media-item:hover .media-actions-overlay {
+  display: flex;
+}
+
+.media-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-action-btn:hover {
+  background: var(--primary-color);
+}
+
+.media-action-btn.danger:hover {
+  background: #ff6b6b;
+}
+
+/* ========== Upload Button ========== */
+.add-media-btn {
+  border: 2px dashed var(--primary-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  text-align: center;
+  background: var(--bg-body);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.add-media-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(255, 182, 193, 0.1);
+}
+
+.add-media-btn .upload-icon {
+  font-size: 2rem;
+  color: var(--primary-light);
+}
+
+.add-media-btn .upload-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* ========== Add Node Button ========== */
+.add-node-container {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+}
+
+.add-node-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.add-node-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ========== Bottom Editor Toolbar ========== */
+.editor-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 2px solid var(--primary-light);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  display: none;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+body.editor-mode .editor-toolbar {
+  display: flex;
+}
+
+.editor-toolbar-section {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.editor-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--primary-light);
+  margin: 0 var(--spacing-sm);
+}
+
+.btn-toolbar {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+}
+
+.btn-toolbar-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-toolbar-secondary {
+  background: var(--bg-body);
+  color: var(--text-primary);
+  border: 1px solid var(--primary-light);
+}
+
+.btn-toolbar:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Storage indicator */
+.storage-indicator {
+  font-size: var(--font-size-xs);
+  color: var(--text-light);
+  padding: 4px 8px;
+  background: var(--bg-body);
+  border-radius: var(--radius-sm);
+}
+
+.storage-indicator.warning {
+  color: #ffd43b;
+}
+
+.storage-indicator.danger {
+  color: #ff6b6b;
+}
+
+/* ========== Ending Editor ========== */
+.ending-content .editable-field:hover::after {
+  content: '✏️';
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  transform: translateY(-50%);
+  font-size: 16px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-full);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ending-message-edit,
+.ending-name-edit,
+.ending-date-edit {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing-sm);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.ending-message-edit {
+  font-size: var(--font-size-xl);
+  min-height: 60px;
+}
+
+.ending-name-edit {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  min-height: 44px;
+}
+
+.ending-date-edit {
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+/* ========== Music Upload Section ========== */
+.music-upload-section {
+  display: none;
+  padding: var(--spacing-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+body.editor-mode .music-upload-section.visible {
+  display: block;
+}
+
+.music-upload-section h3 {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.music-current {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-body);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.music-current-info {
+  flex: 1;
+}
+
+.music-current-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.music-current-size {
+  font-size: var(--font-size-xs);
+  color: var(--text-light);
+}
+
+.btn-music-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--primary-color);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-music-upload:hover {
+  background: var(--primary-dark);
+}
+
+/* ========== Toast Notification ========== */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.toast {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: white;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  animation: slideInRight 0.3s ease;
+  max-width: 280px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast.success {
+  border-left: 4px solid #51cf66;
+}
+
+.toast.error {
+  border-left: 4px solid #ff6b6b;
+}
+
+.toast.info {
+  border-left: 4px solid var(--primary-color);
+}
+
+.toast-icon {
+  font-size: 16px;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 480px) {
+  .editor-toolbar {
+    padding: var(--spacing-xs);
+  }
+
+  .btn-toolbar {
+    padding: 6px 10px;
+    font-size: var(--font-size-xs);
+  }
+
+  .toolbar-label {
+    display: none;
+  }
+
+  .storage-indicator {
+    display: none;
+  }
+
+  .edit-toolbar {
+    top: -12px;
+    right: 4px;
+  }
+
+  .edit-toolbar-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
