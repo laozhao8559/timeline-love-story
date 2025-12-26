@@ -140,11 +140,31 @@ function createTimelineNode(node, index) {
 function createContentBlock(contentBlock, nodeId, contentIndex) {
   console.log('[createContentBlock] 创建内容块:', { type: contentBlock.type, contentBlock });
 
+  // 可用的动画效果列表
+  const animations = [
+    'animate-fadeIn',
+    'animate-slideUp',
+    'animate-slideDown',
+    'animate-slideInLeft',
+    'animate-slideInRight',
+    'animate-zoomIn',
+    'animate-rotateIn',
+    'animate-bounceIn',
+    'animate-flipInX'
+  ];
+
+  // 随机选择一个动画
+  const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+
   if (contentBlock.type === 'text') {
     const textEl = document.createElement('p');
     textEl.className = 'timeline-text-block';
     textEl.textContent = contentBlock.content;
-    console.log('[createContentBlock] 创建文字元素:', textEl);
+    // 添加随机动画类和数据属性
+    textEl.classList.add(randomAnimation);
+    textEl.dataset.animate = randomAnimation;
+    textEl.dataset.blockIndex = contentIndex;
+    console.log('[createContentBlock] 创建文字元素，动画:', randomAnimation);
     return textEl;
 
   } else if (contentBlock.type === 'image') {
@@ -154,12 +174,20 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
     img.className = 'timeline-image';
     // 移除 loading='lazy' 以确保图片立即加载
     img.addEventListener('click', () => openLightbox(contentBlock.src, contentBlock.alt));
-    console.log('[createContentBlock] 创建图片元素，src:', contentBlock.src);
+    // 添加随机动画类和数据属性
+    img.classList.add(randomAnimation);
+    img.dataset.animate = randomAnimation;
+    img.dataset.blockIndex = contentIndex;
+    console.log('[createContentBlock] 创建图片元素，src:', contentBlock.src, '动画:', randomAnimation);
     return img;
 
   } else if (contentBlock.type === 'video') {
     const videoEl = createVideoElement(contentBlock);
-    console.log('[createContentBlock] 创建视频元素');
+    // 添加随机动画类和数据属性
+    videoEl.classList.add(randomAnimation);
+    videoEl.dataset.animate = randomAnimation;
+    videoEl.dataset.blockIndex = contentIndex;
+    console.log('[createContentBlock] 创建视频元素，动画:', randomAnimation);
     return videoEl;
   }
 

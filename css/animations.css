@@ -136,6 +136,144 @@
   transform: translateY(0);
 }
 
+/* ========== Content Block Entry Animations (PPT Style) ========== */
+
+/* 初始状态 - 内容块默认隐藏 */
+.timeline-text-block,
+.timeline-image,
+.video-wrapper {
+  opacity: 0;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 淡入 */
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* 从下滑入 */
+.animate-slideUp {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+/* 从上滑入 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slideDown {
+  animation: slideDown 0.6s ease-out forwards;
+}
+
+/* 从左滑入 */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slideInLeft {
+  animation: slideInLeft 0.6s ease-out forwards;
+}
+
+/* 从右滑入 */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slideInRight {
+  animation: slideInRight 0.6s ease-out forwards;
+}
+
+/* 缩放进入 */
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-zoomIn {
+  animation: zoomIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 旋转进入 */
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-180deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+.animate-rotateIn {
+  animation: rotateIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 弹跳进入 */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-bounceIn {
+  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* 翻转进入 */
+@keyframes flipInX {
+  from {
+    opacity: 0;
+    transform: perspective(400px) rotateX(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(400px) rotateX(0);
+  }
+}
+.animate-flipInX {
+  animation: flipInX 0.6s ease-out forwards;
+}
+
+/* 内容块已进入可见状态 */
+.timeline-text-block.visible,
+.timeline-image.visible,
+.video-wrapper.visible {
+  opacity: 1;
+}
+
 /* ========== Editor Mode Override ========== */
 /* 编辑模式下禁用滚动动画，节点始终可见 */
 body.editor-mode .timeline-node {
@@ -146,4 +284,12 @@ body.editor-mode .timeline-node {
 body.editor-mode .timeline-ending {
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* 编辑模式下内容块也始终可见，无动画 */
+body.editor-mode .timeline-text-block,
+body.editor-mode .timeline-image,
+body.editor-mode .video-wrapper {
+  opacity: 1 !important;
+  animation: none !important;
 }

@@ -4,13 +4,14 @@
  */
 
 let scrollObserver = null;
+let blockObserver = null;
 
 /**
  * Initialize scroll animations
  * 支持独立内容块动画
  */
 function initScrollAnimations() {
-  // Create observer if it doesn't exist
+  // Create observer for timeline nodes if it doesn't exist
   if (!scrollObserver) {
     const observerOptions = {
       root: null,
@@ -25,6 +26,15 @@ function initScrollAnimations() {
           if (entry.target.classList.contains('standalone-block')) {
             entry.target.classList.add('visible');
           }
+
+          // 节点进入视口后，开始观察其内部的内容块
+          const contentBlocks = entry.target.querySelectorAll('.timeline-text-block, .timeline-image, .video-wrapper');
+          contentBlocks.forEach((block, index) => {
+            // 添加延迟，让内容块依次出现
+            setTimeout(() => {
+              block.classList.add('visible');
+            }, index * 150); // 每个内容块延迟 150ms
+          });
         }
       });
     }, observerOptions);
@@ -35,6 +45,8 @@ function initScrollAnimations() {
   nodes.forEach(node => {
     scrollObserver.observe(node);
   });
+
+  console.log('[initScrollAnimations] 已观察节点数:', nodes.length);
 }
 
 /**
@@ -43,5 +55,8 @@ function initScrollAnimations() {
 function disconnectScrollObserver() {
   if (scrollObserver) {
     scrollObserver.disconnect();
+  }
+  if (blockObserver) {
+    blockObserver.disconnect();
   }
 }
