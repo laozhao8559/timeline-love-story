@@ -241,13 +241,16 @@ const avatarData = [
     id: 'me',
     name: '刘浩',
     emoji: '👨',
-    isMe: true
+    isMe: true,
+    photo: null, // Will store uploaded photo data URL
+    bubbleText: ''
   },
   {
     id: 'star1',
     name: '彭于晏',
     emoji: '🤵',
     isMe: false,
+    photo: null,
     bubbleText: '我只是来凑热闹的～'
   },
   {
@@ -255,6 +258,7 @@ const avatarData = [
     name: '胡歌',
     emoji: '🎭',
     isMe: false,
+    photo: null,
     bubbleText: '不合适不合适～'
   },
   {
@@ -262,6 +266,7 @@ const avatarData = [
     name: '易烊千玺',
     emoji: '💃',
     isMe: false,
+    photo: null,
     bubbleText: '抓不到我哦～'
   },
   {
@@ -269,9 +274,12 @@ const avatarData = [
     name: '王俊凯',
     emoji: '🎤',
     isMe: false,
+    photo: null,
     bubbleText: '我选择退出～'
   }
 ];
+
+const AVATAR_PHOTOS_KEY = 'avatar_photos';
 
 /**
  * Initialize proposal page
@@ -283,15 +291,106 @@ function initProposalPage() {
   // Clear existing content
   grid.innerHTML = '';
 
+  // Load saved photos
+  const savedPhotos = StorageManager?.load?.(AVATAR_PHOTOS_KEY) || {};
+  avatarData.forEach(avatar => {
+    if (savedPhotos[avatar.id]) {
+      avatar.photo = savedPhotos[avatar.id];
+    }
+  });
+
   // Shuffle non-me avatars
   const nonMeAvatars = avatarData.filter(a => !a.isMe);
   shuffleArray(nonMeAvatars);
+
+  // Rebuild avatarData with shuffled order (keep 'me' at position 0)
+  const shuffledData = [avatarData[0], ...nonMeAvatars];
+  for (let i = 0; i < avatarData.length; i++) {
+    avatarData[i] = shuffledData[i];
+  }
 
   // Create avatar cards
   avatarData.forEach((avatar, index) => {
     const card = createAvatarCard(avatar, index);
     grid.appendChild(card);
   });
+
+  // Add upload section in editor mode
+  if (editorMode) {
+    const uploadSection = createAvatarUploadSection();
+    grid.appendChild(uploadSection);
+  }
+}
+
+/**
+ * Create avatar upload section (editor mode)
+ */
+function createAvatarUploadSection() {
+  const section = document.createElement('div');
+  section.className = 'avatar-upload-section';
+  section.style.cssText = 'grid-column: 1 / -1; padding: 20px; background: rgba(255,182,193,0.1); border-radius: 12px; margin-top: 20px;';
+
+  section.innerHTML = `
+    <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 16px;">📷 上传照片</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+      ${avatarData.map((avatar, index) => `
+        <div class="avatar-upload-item" data-index="${index}" style="text-align: center;">
+          <button class="avatar-upload-btn" onclick="uploadAvatarPhoto(${index})" style="
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px dashed var(--primary-light);
+            background: white;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+          ">📷</button>
+          <div style="font-size: 12px; color: var(--text-secondary);">${avatar.name}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  return section;
+}
+
+/**
+ * Upload avatar photo
+ */
+function uploadAvatarPhoto(index) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // For localStorage, convert to base64 (has size limits)
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+
+      // Save to avatar data
+      avatarData[index].photo = dataUrl;
+
+      // Save to localStorage
+      const savedPhotos = StorageManager?.load?.(AVATAR_PHOTOS_KEY) || {};
+      savedPhotos[avatarData[index].id] = dataUrl;
+
+      try {
+        StorageManager.save(AVATAR_PHOTOS_KEY, savedPhotos);
+        showToast('照片已上传', 'success');
+        initProposalPage(); // Re-render
+      } catch (e) {
+        showToast('照片太大，无法保存', 'error');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 /**
@@ -302,18 +401,43 @@ function createAvatarCard(avatar, index) {
   card.className = `avatar-card${avatar.isMe ? ' is-me' : ''}`;
   card.dataset.avatarId = avatar.id;
 
+  // Display photo if available, otherwise emoji
+  let avatarContent;
+  if (avatar.photo) {
+    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+  } else {
+    avatarContent = avatar.emoji;
+  }
+
   card.innerHTML = `
     <div class="bubble-message">${avatar.bubbleText || ''}</div>
     <div class="avatar-image-wrapper">
-      ${avatar.emoji}
+      ${avatarContent}
     </div>
-    <div class="avatar-name">${avatar.name}</div>
+    ${editorMode ? `<input type="text" value="${escapeHtml(avatar.name)}"
+      onchange="updateAvatarName(${index}, this.value)"
+      style="width: 100%; text-align: center; border: 1px dashed var(--primary-light);
+      border-radius: 4px; padding: 2px; font-size: 12px; margin-top: 4px;">`
+      : `<div class="avatar-name">${avatar.name}</div>`}
   `;
 
   // Add click handler
-  card.addEventListener('click', () => handleAvatarClick(avatar, card));
+  card.addEventListener('click', (e) => {
+    // Don't trigger if clicking on input in editor mode
+    if (e.target.tagName === 'INPUT') return;
+    handleAvatarClick(avatar, card);
+  });
 
   return card;
+}
+
+/**
+ * Update avatar name
+ */
+function updateAvatarName(index, newName) {
+  avatarData[index].name = newName;
+  // Note: names are not persisted separately, they're part of avatarData
+  // You could add separate storage if needed
 }
 
 /**
