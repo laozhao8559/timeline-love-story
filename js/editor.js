@@ -22,8 +22,11 @@ const STORAGE_KEYS = {
 const StorageManager = {
   save(key, data) {
     try {
+      console.log('StorageManager.save called:', { key, dataType: typeof data, dataLength: data?.length });
       const json = JSON.stringify(data);
+      console.log('Data stringified, length:', json.length);
       localStorage.setItem(key, json);
+      console.log('Data saved to localStorage successfully');
       return true;
     } catch (e) {
       console.error('Storage save error:', e);
@@ -143,11 +146,25 @@ function exitEditMode() {
     window.standaloneBlocks = savedBlocks;
   }
 
+  console.log('[exitEditMode] 准备退出编辑模式，当前 editingData:', editingData);
+  console.log('[exitEditMode] 第一个节点 contents:', editingData[0]?.contents);
+
+  // 确保数据已保存
+  saveData();
+
+  console.log('[exitEditMode] 数据已保存到 localStorage');
+
+  // 验证 localStorage 中的数据
+  const savedData = StorageManager.load(STORAGE_KEYS.TIMELINE_DATA);
+  console.log('[exitEditMode] 从 localStorage 读取的数据:', savedData);
+  console.log('[exitEditMode] 第一个节点 contents:', savedData?.[0]?.contents);
+
   // 使用 initTimeline 重新渲染（它会读取 standaloneBlocks 和 ending）
   initTimeline();
 
-  // Cleanup object URLs
-  cleanupObjectURLs();
+  // 注意：不清理 object URLs，因为阅读模式还需要它们
+  // Blob URLs 在刷新页面后会自动失效
+  // cleanupObjectURLs();
 }
 
 /**
@@ -564,6 +581,8 @@ function showAddBlockMenu(nodeIndex) {
  * Add a content block to a node
  */
 function addContentBlockToNode(nodeIndex, type, data = {}) {
+  console.log('addContentBlockToNode called:', { nodeIndex, type, data });
+
   const node = editingData[nodeIndex];
   if (!node.contents) {
     node.contents = [];
@@ -582,7 +601,10 @@ function addContentBlockToNode(nodeIndex, type, data = {}) {
     newBlock.poster = data.poster || '';
   }
 
+  console.log('Before push - node.contents:', node.contents);
   node.contents.push(newBlock);
+  console.log('After push - node.contents:', node.contents);
+  console.log('editingData after modification:', editingData);
 
   saveData();
   renderTimelineWithEditControls();

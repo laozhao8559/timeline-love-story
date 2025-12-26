@@ -11,8 +11,21 @@ function initTimeline() {
   const container = document.getElementById('timeline-nodes');
   if (!container) return;
 
+  console.log('[initTimeline] 开始初始化时间轴');
+
   // Clear existing content
   container.innerHTML = '';
+
+  // 优先使用 localStorage 中的编辑数据，如果没有则使用默认数据
+  const savedTimelineData = localStorage.getItem('timeline_data');
+  console.log('[initTimeline] localStorage 中的数据:', savedTimelineData);
+
+  const dataToRender = savedTimelineData ? JSON.parse(savedTimelineData) : timelineData;
+
+  console.log('[initTimeline] 将要渲染的数据:', dataToRender);
+  console.log('[initTimeline] 第一个节点完整数据:', dataToRender[0]);
+  console.log('[initTimeline] 第一个节点 contents:', dataToRender[0]?.contents);
+  console.log('[initTimeline] contents 长度:', dataToRender[0]?.contents?.length);
 
   // 先渲染 insertAfter: -1 的内容块（最前面）
   const headBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === -1);
@@ -22,7 +35,8 @@ function initTimeline() {
   });
 
   // 渲染所有时间轴节点，并在节点之间插入独立内容块
-  timelineData.forEach((node, index) => {
+  dataToRender.forEach((node, index) => {
+    console.log(`[initTimeline] 渲染节点 ${index}:`, { id: node.id, title: node.title, contentsLength: node.contents?.length });
     const nodeEl = createTimelineNode(node, index);
     container.appendChild(nodeEl);
 
@@ -34,9 +48,16 @@ function initTimeline() {
     });
   });
 
+  console.log('[initTimeline] 总共渲染的节点数:', container.children.length);
+
   // Render the ending
   const endingEl = createTimelineEnding();
   container.appendChild(endingEl);
+
+  // 初始化滚动动画（添加 animate-in 类）
+  if (typeof initScrollAnimations === 'function') {
+    initScrollAnimations();
+  }
 }
 
 /**
@@ -117,10 +138,13 @@ function createTimelineNode(node, index) {
  * Create a content block element (text, image, or video)
  */
 function createContentBlock(contentBlock, nodeId, contentIndex) {
+  console.log('[createContentBlock] 创建内容块:', { type: contentBlock.type, contentBlock });
+
   if (contentBlock.type === 'text') {
     const textEl = document.createElement('p');
     textEl.className = 'timeline-text-block';
     textEl.textContent = contentBlock.content;
+    console.log('[createContentBlock] 创建文字元素:', textEl);
     return textEl;
 
   } else if (contentBlock.type === 'image') {
@@ -128,14 +152,18 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
     img.src = contentBlock.src;
     img.alt = contentBlock.alt || '';
     img.className = 'timeline-image';
-    img.loading = 'lazy';
+    // 移除 loading='lazy' 以确保图片立即加载
     img.addEventListener('click', () => openLightbox(contentBlock.src, contentBlock.alt));
+    console.log('[createContentBlock] 创建图片元素，src:', contentBlock.src);
     return img;
 
   } else if (contentBlock.type === 'video') {
-    return createVideoElement(contentBlock);
+    const videoEl = createVideoElement(contentBlock);
+    console.log('[createContentBlock] 创建视频元素');
+    return videoEl;
   }
 
+  console.log('[createContentBlock] 未知的内容块类型:', contentBlock.type);
   return null;
 }
 
