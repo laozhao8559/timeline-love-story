@@ -17,6 +17,13 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <!-- ========== Global Editor Toggle (Always Visible) ========== -->
+  <div class="editor-mode-toggle">
+    <button class="btn-editor-toggle" onclick="toggleEditorMode()">
+      进入编辑
+    </button>
+  </div>
+
   <!-- ========== Loading Page ========== -->
   <div id="loading-page" class="page active">
     <div class="loading-content">
@@ -72,13 +79,6 @@
 
   <!-- ========== Timeline Page ========== -->
   <div id="timeline-page" class="page hidden">
-    <!-- Editor Mode Toggle -->
-    <div class="editor-mode-toggle">
-      <button class="btn-editor-toggle" onclick="toggleEditorMode()">
-        进入编辑
-      </button>
-    </div>
-
     <!-- Music Controller -->
     <div id="music-controller" class="music-controller">
       <button id="music-toggle" class="music-toggle" aria-label="音乐开关">

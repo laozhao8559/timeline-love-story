@@ -149,15 +149,6 @@ function init() {
     initEditor();
   }
 
-  // Show editor toggle if there's saved data or editor mode
-  if (typeof StorageManager !== 'undefined' &&
-      (StorageManager.load('timeline_data') || StorageManager.load('editor_mode'))) {
-    const toggleContainer = document.querySelector('.editor-mode-toggle');
-    if (toggleContainer) {
-      toggleContainer.classList.add('visible');
-    }
-  }
-
   // Initialize choice buttons
   initChoiceButtons();
 
