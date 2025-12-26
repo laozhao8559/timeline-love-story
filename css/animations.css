@@ -135,3 +135,15 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ========== Editor Mode Override ========== */
+/* 编辑模式下禁用滚动动画，节点始终可见 */
+body.editor-mode .timeline-node {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+body.editor-mode .timeline-ending {
+  opacity: 1 !important;
+  transform: none !important;
+}
