@@ -1,0 +1,62 @@
+/* CSS Variables - Theme colors and design tokens */
+
+:root {
+  /* Primary colors - Pink/Warm theme */
+  --primary-color: #FF6B9D;
+  --primary-light: #FFB3D1;
+  --primary-dark: #E85A8A;
+
+  /* Accent colors */
+  --accent-color: #FFD700;
+  --secondary-color: #FFA5B8;
+
+  /* Neutral colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-light: #999999;
+  --bg-body: #FFF5F7;
+  --bg-card: #FFFFFF;
+
+  /* Spacing scale */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(255, 107, 157, 0.1);
+  --shadow-md: 0 4px 16px rgba(255, 107, 157, 0.15);
+  --shadow-lg: 0 8px 32px rgba(255, 107, 157, 0.2);
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #F5F5F5;
+    --text-secondary: #B8B8B8;
+    --text-light: #888888;
+    --bg-body: #1A1A1A;
+    --bg-card: #2A2A2A;
+  }
+}

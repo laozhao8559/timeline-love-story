@@ -1,0 +1,19 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Optional: Ignore real assets if you want to keep them private
+# js/assets/images/real/
+# js/assets/videos/*.mp4
+# js/assets/music/*.mp3

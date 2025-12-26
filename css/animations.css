@@ -1,0 +1,137 @@
+/* Animations - Keyframe animations and transitions */
+
+/* Heart pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Loading progress bar */
+@keyframes loadingProgress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+/* Music spinning animation */
+@keyframes musicSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bounce animation for buttons */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Fade in down animation */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sparkle effect */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+/* Apply animations */
+
+.heart-pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.loading-progress {
+  animation: loadingProgress 1.5s ease-out forwards;
+}
+
+.music-toggle.playing {
+  animation: musicSpin 3s linear infinite;
+}
+
+.ending-hearts span {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.ending-hearts span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ending-hearts span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.ending-hearts span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.confirm-icon {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Scroll trigger animations */
+.timeline-node,
+.timeline-ending {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.timeline-node.animate-in,
+.timeline-ending.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}

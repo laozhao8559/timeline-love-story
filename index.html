@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="我们的爱情故事 - 从相识到现在，每一个瞬间都值得珍藏">
+  <meta name="theme-color" content="#FF6B9D">
+
+  <!-- Open Graph for sharing -->
+  <meta property="og:title" content="我们的爱情故事">
+  <meta property="og:description" content="从相识到现在，每一个瞬间都值得珍藏">
+  <meta property="og:type" content="website">
+
+  <title>我们的故事</title>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <!-- ========== Loading Page ========== -->
+  <div id="loading-page" class="page active">
+    <div class="loading-content">
+      <div class="heart-pulse">❤</div>
+      <p class="loading-text">正在准备惊喜...</p>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Choice Page ========== -->
+  <div id="choice-page" class="page hidden">
+    <div class="choice-container">
+      <h2 class="choice-title">我有一个问题想问你...</h2>
+      <p class="choice-subtitle">你愿意看看我们的故事吗？</p>
+
+      <div class="choice-buttons">
+        <button id="btn-yes" class="btn-choice btn-primary">
+          <span class="btn-icon">❤</span>
+          愿意
+        </button>
+        <button id="btn-no" class="btn-choice btn-secondary">
+          再想想
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Confirm Page ========== -->
+  <div id="confirm-page" class="page hidden">
+    <div class="confirm-content">
+      <div class="confirm-icon">✨</div>
+      <h2>那让我们开始吧</h2>
+      <p>从相识到现在，每一个瞬间都值得珍藏</p>
+      <div class="countdown">3</div>
+    </div>
+  </div>
+
+  <!-- ========== Timeline Page ========== -->
+  <div id="timeline-page" class="page hidden">
+    <!-- Music Controller -->
+    <div id="music-controller" class="music-controller">
+      <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
+        <span class="music-icon">🎵</span>
+      </button>
+    </div>
+
+    <!-- Timeline Container -->
+    <div class="timeline-container">
+      <header class="timeline-header">
+        <h1>我们的故事</h1>
+        <p class="timeline-subtitle">从2021到2025，一路有你</p>
+      </header>
+
+      <main class="timeline">
+        <div class="timeline-line"></div>
+        <div id="timeline-nodes" class="timeline-nodes">
+          <!-- Timeline nodes will be dynamically generated -->
+        </div>
+      </main>
+
+      <footer class="timeline-footer">
+        <p>💕 爱你每一天 💕</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="js/data.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/interactions.js"></script>
+  <script src="js/observer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
