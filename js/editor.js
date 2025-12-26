@@ -163,33 +163,51 @@ function cloneTimelineData() {
  * 只渲染节点和节点内部的内容块
  */
 function renderTimelineWithEditControls() {
-  const container = document.getElementById('timeline-nodes');
-  if (!container) {
-    console.error('Container #timeline-nodes not found!');
-    return;
+  try {
+    const container = document.getElementById('timeline-nodes');
+    if (!container) {
+      console.error('Container #timeline-nodes not found!');
+      return;
+    }
+
+    console.log('renderTimelineWithEditControls called, editingData:', editingData);
+
+    container.innerHTML = '';
+
+    // 只渲染时间轴节点
+    editingData.forEach((node, index) => {
+      console.log(`Rendering node ${index}:`, node);
+      try {
+        const nodeEl = createEditableNode(node, index);
+        container.appendChild(nodeEl);
+      } catch (nodeError) {
+        console.error(`Error rendering node ${index}:`, nodeError);
+        // 继续渲染其他节点
+      }
+    });
+
+    console.log('Total elements in container after render:', container.children.length);
+
+    // Add "Add Node" button
+    console.log('Adding "Add Node" button...');
+    const addContainer = document.createElement('div');
+    addContainer.className = 'add-node-container';
+    addContainer.innerHTML = `
+      <button class="add-node-btn" onclick="addNewNode()">
+        <span>➕</span> 添加新节点
+      </button>
+    `;
+    container.appendChild(addContainer);
+    console.log('Add Node button added');
+
+    // Render editable ending
+    console.log('Rendering ending...');
+    const endingEl = createEditableEnding();
+    container.appendChild(endingEl);
+    console.log('Ending added, total elements now:', container.children.length);
+  } catch (error) {
+    console.error('Error in renderTimelineWithEditControls:', error);
   }
-
-  container.innerHTML = '';
-
-  // 只渲染时间轴节点
-  editingData.forEach((node, index) => {
-    const nodeEl = createEditableNode(node, index);
-    container.appendChild(nodeEl);
-  });
-
-  // Add "Add Node" button
-  const addContainer = document.createElement('div');
-  addContainer.className = 'add-node-container';
-  addContainer.innerHTML = `
-    <button class="add-node-btn" onclick="addNewNode()">
-      <span>➕</span> 添加新节点
-    </button>
-  `;
-  container.appendChild(addContainer);
-
-  // Render editable ending
-  const endingEl = createEditableEnding();
-  container.appendChild(endingEl);
 }
 
 /**
@@ -564,6 +582,8 @@ function showAddBlockMenu(nodeIndex) {
  * Add a content block to a node
  */
 function addContentBlockToNode(nodeIndex, type, data = {}) {
+  console.log('addContentBlockToNode called:', { nodeIndex, type, data });
+
   const node = editingData[nodeIndex];
   if (!node.contents) {
     node.contents = [];
@@ -582,7 +602,14 @@ function addContentBlockToNode(nodeIndex, type, data = {}) {
     newBlock.poster = data.poster || '';
   }
 
+  console.log('New block to add:', newBlock);
+  console.log('Node before push:', node);
+
   node.contents.push(newBlock);
+
+  console.log('Node after push, node.contents:', node.contents);
+  console.log('editingData after push:', editingData);
+
   saveData();
   renderTimelineWithEditControls();
   showToast('已添加', 'success');
@@ -622,64 +649,83 @@ function handleBlockFileUpload(file, nodeIndex, type) {
  * 独立内容块 - 卡片式设计
  */
 function createEditableContentBlock(contentBlock, nodeIndex, contentIndex) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'content-block-card';
-  wrapper.dataset.nodeIndex = nodeIndex;
-  wrapper.dataset.contentIndex = contentIndex;
+  console.log('createEditableContentBlock called:', { contentBlock, nodeIndex, contentIndex });
 
-  // Block 类型标签
-  const typeLabel = document.createElement('div');
-  typeLabel.className = 'block-type-label';
-  const typeLabels = {
-    text: '📝 文字',
-    image: '📷 图片',
-    video: '🎬 视频'
-  };
-  typeLabel.textContent = typeLabels[contentBlock.type] || contentBlock.type;
-  wrapper.appendChild(typeLabel);
+  try {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'content-block-card';
+    wrapper.dataset.nodeIndex = nodeIndex;
+    wrapper.dataset.contentIndex = contentIndex;
 
-  // 控制按钮（悬停显示）
-  const controls = document.createElement('div');
-  controls.className = 'block-card-controls';
-  controls.innerHTML = `
-    <button class="card-control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, -1)" title="上移">↑</button>
-    <button class="card-control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, 1)" title="下移">↓</button>
-    <button class="card-control-btn danger" onclick="deleteContentBlock(${nodeIndex}, ${contentIndex})" title="删除">🗑️</button>
-  `;
-  wrapper.appendChild(controls);
+    // DEBUG: 强制设置样式确保可见
+    wrapper.style.cssText = 'display: block !important; min-height: 50px; border: 3px solid green !important; background: lightyellow !important;';
 
-  // 内容区域
-  const contentArea = document.createElement('div');
-  contentArea.className = 'block-card-content';
+    // Block 类型标签
+    const typeLabel = document.createElement('div');
+    typeLabel.className = 'block-type-label';
+    const typeLabels = {
+      text: '📝 文字',
+      image: '📷 图片',
+      video: '🎬 视频'
+    };
+    typeLabel.textContent = typeLabels[contentBlock.type] || contentBlock.type;
+    wrapper.appendChild(typeLabel);
 
-  if (contentBlock.type === 'text') {
-    contentArea.innerHTML = `<textarea class="block-text-edit" rows="4"
-      onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'content', this.value)"
-      placeholder="在这里写下你的故事...">${escapeHtml(contentBlock.content || '')}</textarea>`;
-  } else if (contentBlock.type === 'image') {
-    contentArea.innerHTML = `
-      <div class="block-media-wrapper">
-        <img src="${contentBlock.src}" alt="${escapeHtml(contentBlock.alt || '')}" class="block-image">
-        <button class="block-replace-btn" onclick="replaceBlockMedia(${nodeIndex}, ${contentIndex})">🔄 替换图片</button>
-      </div>
-      <textarea class="block-caption-edit" rows="1" placeholder="添加说明文字..."
-        onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'caption', this.value)">${escapeHtml(contentBlock.caption || '')}</textarea>
+    // 控制按钮（悬停显示）
+    const controls = document.createElement('div');
+    controls.className = 'block-card-controls';
+    controls.innerHTML = `
+      <button class="card-control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, -1)" title="上移">↑</button>
+      <button class="card-control-btn" onclick="moveContentBlock(${nodeIndex}, ${contentIndex}, 1)" title="下移">↓</button>
+      <button class="card-control-btn danger" onclick="deleteContentBlock(${nodeIndex}, ${contentIndex})" title="删除">🗑️</button>
     `;
-  } else if (contentBlock.type === 'video') {
-    contentArea.innerHTML = `
-      <div class="block-media-wrapper">
-        <div class="video-wrapper">
-          <video src="${contentBlock.src}" poster="${contentBlock.poster || ''}" class="timeline-video"></video>
-          <div class="video-play-overlay"><span class="play-icon">▶</span></div>
+    wrapper.appendChild(controls);
+
+    // 内容区域
+    const contentArea = document.createElement('div');
+    contentArea.className = 'block-card-content';
+
+    if (contentBlock.type === 'text') {
+      contentArea.innerHTML = `<textarea class="block-text-edit" rows="4"
+        onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'content', this.value)"
+        placeholder="在这里写下你的故事...">${escapeHtml(contentBlock.content || '')}</textarea>`;
+    } else if (contentBlock.type === 'image') {
+      console.log('Creating image block with src:', contentBlock.src);
+      contentArea.innerHTML = `
+        <div class="block-media-wrapper">
+          <img src="${contentBlock.src}" alt="${escapeHtml(contentBlock.alt || '')}" class="block-image" style="display: block !important; width: 100px !important; height: 100px !important; background: pink !important;">
+          <button class="block-replace-btn" onclick="replaceBlockMedia(${nodeIndex}, ${contentIndex})">🔄 替换图片</button>
         </div>
-        <button class="block-replace-btn" onclick="replaceBlockMedia(${nodeIndex}, ${contentIndex})">🔄 替换视频</button>
-      </div>
-    `;
+        <textarea class="block-caption-edit" rows="1" placeholder="添加说明文字..."
+          onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'caption', this.value)">${escapeHtml(contentBlock.caption || '')}</textarea>
+      `;
+    } else if (contentBlock.type === 'video') {
+      contentArea.innerHTML = `
+        <div class="block-media-wrapper">
+          <div class="video-wrapper">
+            <video src="${contentBlock.src}" poster="${contentBlock.poster || ''}" class="timeline-video"></video>
+            <div class="video-play-overlay"><span class="play-icon">▶</span></div>
+          </div>
+          <button class="block-replace-btn" onclick="replaceBlockMedia(${nodeIndex}, ${contentIndex})">🔄 替换视频</button>
+        </div>
+      `;
+    }
+
+    wrapper.appendChild(contentArea);
+
+    console.log('Created content block element:', wrapper);
+
+    return wrapper;
+  } catch (error) {
+    console.error('Error creating content block:', error);
+    console.error('Content block data:', contentBlock);
+    // Return a simple error element
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'content-block-card';
+    errorDiv.style.border = '2px solid red';
+    errorDiv.innerHTML = `<p style="color: red; padding: 10px;">Error creating block: ${error.message}</p>`;
+    return errorDiv;
   }
-
-  wrapper.appendChild(contentArea);
-
-  return wrapper;
 }
 
 /**
@@ -796,6 +842,8 @@ function deleteNode(index) {
  * 新数据结构：使用空的 contents 数组
  */
 function addNewNode() {
+  console.log('addNewNode called');
+
   const newNode = {
     id: Date.now(),
     date: '新日期',
@@ -804,7 +852,13 @@ function addNewNode() {
     contents: []  // 空白画布 - 不预设任何内容
   };
 
+  console.log('New node to add:', newNode);
+  console.log('editingData before push:', editingData);
+
   editingData.push(newNode);
+
+  console.log('editingData after push:', editingData);
+
   saveData();
   renderTimelineWithEditControls();
   showToast('已添加新节点', 'success');

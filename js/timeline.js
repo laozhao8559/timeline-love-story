@@ -163,10 +163,11 @@ function createVideoElement(media) {
   video.src = media.src;
   video.poster = media.poster || '';
   video.className = 'timeline-video';
-  video.playsInline = true;
-  video.webkit-playsinline = true;
-  video.x5VideoPlayerType = 'h5';
-  video.x5VideoPlayerFullscreen = 'false';
+  // 使用 setAttribute 设置布尔属性更可靠
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  video.setAttribute('x5-video-player-type', 'h5');
+  video.setAttribute('x5-video-player-fullscreen', 'false');
   video.controls = false;
 
   // Create play button overlay
