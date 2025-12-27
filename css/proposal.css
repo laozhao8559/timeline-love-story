@@ -20,11 +20,89 @@
 }
 
 .proposal-title {
-  font-size: clamp(16px, 4vw, 22px); /* 响应式字体大小 */
-  color: var(--primary-color);
-  margin-bottom: var(--spacing-md); /* 减小间距 */
+  font-size: clamp(20px, 6vw, 28px); /* 响应式字体大小，再增大一号 */
+  margin-bottom: var(--spacing-md);
   line-height: 1.4;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--primary-color); /* 文字本身常亮 */
+  position: relative;
+  display: flex;
+  flex-direction: column; /* 垂直排列两行 */
+  gap: 0.3em; /* 行间距 */
+
+  /* 文字阴影：增强立体感 */
+  text-shadow:
+    0 0 30px rgba(255, 107, 157, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== 标题行样式 ========== */
+.title-line {
+  width: 100%;
+  display: block;
+}
+
+/* 第一行：靠左对齐 */
+.title-left {
+  text-align: left;
+}
+
+/* 第二行：靠右对齐 */
+.title-right {
+  text-align: right;
+}
+
+/* ========== 扫光效果层（伪元素） ========== */
+.proposal-title::before {
+  content: attr(data-text); /* 使用 data-text 属性内容 */
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+
+  /* 彩色渐变光带 */
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 0, 0, 0.3) 40%,      /* 红色 */
+    rgba(255, 165, 0, 0.4) 43%,   /* 橙色 */
+    rgba(255, 255, 0, 0.5) 46%,   /* 黄色 */
+    rgba(0, 255, 0, 0.4) 50%,     /* 绿色 - 中心最亮 */
+    rgba(0, 255, 255, 0.4) 54%,   /* 青色 */
+    rgba(0, 0, 255, 0.3) 57%,     /* 蓝色 */
+    rgba(128, 0, 128, 0.3) 60%,   /* 紫色 */
+    transparent 65%,
+    transparent 100%
+  );
+
+  /* 背景裁剪到文字 */
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  /* 文字透明，只显示光带 */
+  -webkit-text-fill-color: transparent;
+
+  /* 背景大小 */
+  background-size: 200% 100%;
+
+  /* 扫光动画：6秒，慢速移动 */
+  animation: shimmer 6s linear infinite;
+
+  /* 混合模式：让光带叠加在原文字上 */
+  mix-blend-mode: color-dodge;
+}
+
+/* ========== 扫光动画关键帧 ========== */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0; /* 光带从右侧开始 */
+  }
+  100% {
+    background-position: -200% 0; /* 光带移到左侧，循环 */
+  }
 }
 
 /* ========== Avatar Grid Layout ========== */
