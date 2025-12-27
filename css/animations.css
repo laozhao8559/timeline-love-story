@@ -297,17 +297,36 @@ body.editor-mode .video-wrapper {
 /* ========== 阶段1：世界安静下来 ========== */
 .timeline-container.easter-egg-stage1 {
   transform: scale(0.98);
+  transition: transform 0.6s ease;
+}
+
+/* 阶段1：虚化现有节点（不包括未来节点） */
+.timeline-container.easter-egg-stage1 .timeline-node:not(.future-node),
+.timeline-container.easter-egg-stage1 .timeline-ending {
   opacity: 0.5;
   filter: blur(3px);
-  transition: transform 0.6s ease, opacity 0.6s ease, filter 0.6s ease;
+  transition: opacity 0.6s ease, filter 0.6s ease;
 }
 
 /* ========== 未来节点模式（保持虚化） ========== */
 .timeline-container.future-node-mode {
   transform: scale(0.98);
+  transition: transform 0.6s ease;
+}
+
+/* 未来节点模式：虚化现有节点（不包括未来节点） */
+.timeline-container.future-node-mode .timeline-node:not(.future-node),
+.timeline-container.future-node-mode .timeline-ending {
   opacity: 0.5;
   filter: blur(3px);
-  transition: transform 0.6s ease, opacity 0.6s ease, filter 0.6s ease;
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+
+/* 未来节点：保持清晰，不虚化 */
+.timeline-container.future-node-mode .future-node {
+  opacity: 1;
+  filter: none;
+  transform: scale(1);
 }
 
 /* ========== 全屏 Overlay 容器 ========== */
@@ -608,31 +627,148 @@ body.editor-mode .video-wrapper {
 
 /* ========== 未来节点样式 ========== */
 .future-node {
-  background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(196, 69, 105, 0.1) 100%);
-  border-radius: 16px;
-  padding: 2rem;
-  margin: 2rem 0;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.15) 0%, rgba(196, 69, 105, 0.08) 50%, rgba(255, 182, 193, 0.15) 100%);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  margin: 2rem auto;
+  max-width: 600px;
+  border: 2px solid rgba(255, 107, 157, 0.3);
+  box-shadow:
+    0 8px 32px rgba(255, 107, 157, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 0 60px rgba(255, 107, 157, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 光晕效果 */
+.future-node::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 107, 157, 0.1) 0%, transparent 70%);
+  animation: rotateGlow 10s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 闪烁星星装饰 */
+.future-node::after {
+  content: '✨';
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 1.5rem;
+  animation: twinkle 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
 
 .future-node .timeline-date {
   color: #FF6B9D;
   font-weight: bold;
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(255, 107, 157, 0.5);
+  letter-spacing: 0.2em;
+}
+
+.future-node .timeline-title {
+  text-align: center;
+  font-size: 2rem;
+  color: #FF6B9D;
+  margin-bottom: 2rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-shadow: 0 0 30px rgba(255, 107, 157, 0.4);
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(255, 107, 157, 0.4);
+  }
+  50% {
+    text-shadow: 0 0 50px rgba(255, 107, 157, 0.8);
+  }
 }
 
 .future-node-placeholder {
   text-align: center;
-  padding: 2rem;
-  color: #666;
+  padding: 2.5rem 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .placeholder-icon {
-  font-size: 3rem;
+  font-size: 4rem;
   display: block;
-  margin-bottom: 1rem;
-  animation: bounce 2s ease-in-out infinite;
+  margin-bottom: 1.5rem;
+  animation: floatIcon 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.6));
+}
+
+@keyframes floatIcon {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-5deg);
+  }
 }
 
 .future-node-placeholder p {
-  font-size: 1.1rem;
-  color: #999;
+  font-size: 1.3rem;
+  color: #888;
+  line-height: 1.8;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  margin: 0;
+}
+
+/* 诗歌样式 */
+.future-node-placeholder .future-poem {
+  text-align: center;
+  line-height: 2;
+}
+
+.future-node-placeholder .future-poem p {
+  font-size: 1.15rem;
+  color: #555;
+  margin: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.05em;
+}
+
+.future-node-placeholder .future-poem .poem-spacer {
+  height: 1rem;
+  line-height: 1;
+}
+
+/* 心形装饰 */
+.future-node-placeholder .heart-decor {
+  display: inline-block;
+  margin: 0 0.3em;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(1); }
 }

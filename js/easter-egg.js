@@ -541,8 +541,20 @@ function addFutureNode() {
     <div class="timeline-content">
       <h3 class="timeline-title">未完待续…</h3>
       <div class="future-node-placeholder">
-        <span class="placeholder-icon">📝</span>
-        <p>我们的故事，还在继续...</p>
+        <span class="placeholder-icon">💌</span>
+        <div class="future-poem">
+          <p>这三年，</p>
+          <p>没有惊天动地，</p>
+          <p>却一步一步走得很真。</p>
+          <p class="poem-spacer"></p>
+          <p>谢谢你选择了我，</p>
+          <p>也让我有机会，</p>
+          <p>一直选择你。</p>
+          <p class="poem-spacer"></p>
+          <p>未来的时间轴，</p>
+          <p>我希望，</p>
+          <p>还可以陪你写很久……<span class="heart-decor">❤</span></p>
+        </div>
       </div>
     </div>
   `;
