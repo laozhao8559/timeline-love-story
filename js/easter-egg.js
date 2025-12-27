@@ -26,9 +26,10 @@ const EASTER_EGG_CONFIG = {
 
   // 阶段2：三句文字内容（逐句淡入，保留在屏幕）
   stage2Words: [
-    '是你，让日子有了重量……',
-    '是你，让时间变得温柔……',
-    '是你，让我有了家……'
+    '亲爱的老婆：',
+    '是你，让日子有了重量...',
+    '是你，让时间变得温柔...',
+    '是你，让我有了家...'
   ],
 
   // 阶段2：每句文字间隔（毫秒）- 0.6～0.8秒
@@ -210,11 +211,31 @@ function runStage1() {
   if (textContainer) {
     const introEl = document.createElement('div');
     introEl.className = 'easter-egg-intro-text';
-    introEl.textContent = EASTER_EGG_CONFIG.stage1IntroText;
+
+    // 将文字拆分成单个字符，以便添加跳跃动画
+    const text = EASTER_EGG_CONFIG.stage1IntroText;
+    const chars = text.split('');
+    chars.forEach((char, i) => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.className = 'intro-char';
+      introEl.appendChild(span);
+    });
+
     textContainer.appendChild(introEl);
 
     // 淡入开场文案
     setTimeout(() => introEl.classList.add('visible'), 100);
+
+    // 淡入完成后（1秒），添加从左到右跳跃动画
+    setTimeout(() => {
+      const charSpans = introEl.querySelectorAll('.intro-char');
+      charSpans.forEach((span, i) => {
+        setTimeout(() => {
+          span.classList.add('jump-wave');
+        }, i * 100); // 每个字延迟100ms
+      });
+    }, 1000);
 
     // 停留2秒后，淡出开场文案
     setTimeout(() => {
@@ -253,26 +274,45 @@ function runStage2() {
   // 逐句显示三句文字（前一句不消失，最终同时存在）
   const words = EASTER_EGG_CONFIG.stage2Words;
 
-  function typeWriter(element, text, speed = 300) {
-    let i = 0;
+  // 固定位置打字机效果 - 每个字有固定位置，从左到右均匀分布
+  function typeWriterFixed(element, text, speed = 300) {
+    const chars = text.split('');
+    const charSpans = [];
+
+    // 清空元素
+    element.innerHTML = '';
+
+    // 创建所有字符的 span，初始透明
+    chars.forEach((char, i) => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.className = 'char-fixed';
+      span.style.opacity = '0';
+      element.appendChild(span);
+      charSpans.push(span);
+    });
+
+    // 逐个显示字符
     return new Promise((resolve) => {
-      function type() {
-        if (i < text.length) {
-          element.textContent += text.charAt(i);
+      let i = 0;
+      function showChar() {
+        if (i < charSpans.length) {
+          charSpans[i].style.opacity = '1';
+          charSpans[i].classList.add('char-visible');
           i++;
-          setTimeout(type, speed);
+          setTimeout(showChar, speed);
         } else {
           resolve();
         }
       }
-      type();
+      showChar();
     });
   }
 
   async function showStage2Line(index) {
     if (index >= words.length) {
-      // 三句都显示完毕，停留2秒后进入阶段3
-      console.log('[EasterEgg] 阶段2三句文字显示完毕，停留2秒');
+      // 四句都显示完毕，停留2秒后进入阶段3
+      console.log('[EasterEgg] 阶段2四句文字显示完毕，停留2秒');
       setTimeout(() => {
         runStage3();
       }, 2000);
@@ -284,8 +324,8 @@ function runStage2() {
     lineEl.classList.add('visible'); // 打字机效果不需要淡入动画
     textContainer.appendChild(lineEl);
 
-    // 打字机效果逐字显示（300ms/字，比原来的150ms慢2倍）
-    await typeWriter(lineEl, words[index], 300);
+    // 固定位置打字机效果逐字显示
+    await typeWriterFixed(lineEl, words[index], 200);
 
     // 等待一下再显示下一句
     setTimeout(() => {

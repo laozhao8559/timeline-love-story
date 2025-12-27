@@ -376,6 +376,7 @@
   gap: var(--spacing-sm);
   font-size: var(--font-size-xl);
   margin-top: var(--spacing-lg);
+  color: #FF6B9D; /* 红色爱心 */
 }
 
 /* ========== Standalone Content Blocks ========== */
