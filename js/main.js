@@ -281,7 +281,8 @@ const avatarData = [
     isMe: true,
     photo: null,
     position: 'center', // 中间大图
-    bubbleText: '这是我'
+    remark: '', // 备注文字
+    imageOffset: { x: 0, y: 0 } // 图片偏移量（拖动调整）
   },
   {
     id: 'top-left',
@@ -290,7 +291,8 @@ const avatarData = [
     isMe: false,
     photo: null,
     position: 'top-left', // 左上角
-    bubbleText: '不合适不合适～'
+    remark: '',
+    imageOffset: { x: 0, y: 0 }
   },
   {
     id: 'top-right',
@@ -299,7 +301,8 @@ const avatarData = [
     isMe: false,
     photo: null,
     position: 'top-right', // 右上角
-    bubbleText: '我只是来凑热闹的～'
+    remark: '',
+    imageOffset: { x: 0, y: 0 }
   },
   {
     id: 'bottom-left',
@@ -308,7 +311,8 @@ const avatarData = [
     isMe: false,
     photo: null,
     position: 'bottom-left', // 左下角
-    bubbleText: '我还是走吧～'
+    remark: '',
+    imageOffset: { x: 0, y: 0 }
   },
   {
     id: 'bottom-right',
@@ -317,11 +321,14 @@ const avatarData = [
     isMe: false,
     photo: null,
     position: 'bottom-right', // 右下角
-    bubbleText: '告辞告辞～'
+    remark: '',
+    imageOffset: { x: 0, y: 0 }
   }
 ];
 
 const AVATAR_PHOTOS_KEY = 'avatar_photos';
+const AVATAR_REMARKS_KEY = 'avatar_remarks';
+const AVATAR_OFFSETS_KEY = 'avatar_offsets';
 
 /**
  * Initialize proposal page
@@ -346,6 +353,22 @@ function initProposalPage() {
   avatarData.forEach(avatar => {
     if (savedNames[avatar.id]) {
       avatar.name = savedNames[avatar.id];
+    }
+  });
+
+  // Load saved remarks
+  const savedRemarks = StorageManager?.load?.(AVATAR_REMARKS_KEY) || {};
+  avatarData.forEach(avatar => {
+    if (savedRemarks[avatar.id]) {
+      avatar.remark = savedRemarks[avatar.id];
+    }
+  });
+
+  // Load saved image offsets
+  const savedOffsets = StorageManager?.load?.(AVATAR_OFFSETS_KEY) || {};
+  avatarData.forEach(avatar => {
+    if (savedOffsets[avatar.id]) {
+      avatar.imageOffset = savedOffsets[avatar.id];
     }
   });
 
@@ -431,7 +454,12 @@ function createAvatarCard(avatar, index) {
   // Display photo if available, otherwise emoji
   let avatarContent;
   if (avatar.photo) {
-    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}">`;
+    // 应用保存的图片偏移量
+    const offsetX = avatar.imageOffset?.x || 0;
+    const offsetY = avatar.imageOffset?.y || 0;
+    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}"
+      style="transform: translate(${offsetX}px, ${offsetY}px)"
+      data-avatar-index="${index}">`;
   } else {
     avatarContent = `<span class="avatar-emoji">${avatar.emoji}</span>`;
   }
@@ -442,17 +470,36 @@ function createAvatarCard(avatar, index) {
         onchange="updateAvatarName(${index}, this.value)">`
     : `<div class="avatar-name">${avatar.name}</div>`;
 
+  // Remark display: editable input in editor mode, plain text otherwise (only if has content)
+  let remarkHtml = '';
+  if (editorMode) {
+    remarkHtml = `<textarea class="avatar-remark-input" placeholder="添加备注..."
+      onchange="updateAvatarRemark(${index}, this.value)"
+      oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'">${escapeHtml(avatar.remark || '')}</textarea>`;
+  } else if (avatar.remark && avatar.remark.trim()) {
+    remarkHtml = `<div class="avatar-remark">${escapeHtml(avatar.remark)}</div>`;
+  }
+
   card.innerHTML = `
     <div class="avatar-image-wrapper">
       ${avatarContent}
     </div>
     ${nameHtml}
+    ${remarkHtml}
   `;
+
+  // 编辑模式：添加图片拖动功能
+  if (editorMode && avatar.photo) {
+    const img = card.querySelector('img');
+    if (img) {
+      setupImageDrag(img, index);
+    }
+  }
 
   // Add click handler
   card.addEventListener('click', (e) => {
-    // Don't trigger if clicking on input in editor mode
-    if (e.target.tagName === 'INPUT') return;
+    // Don't trigger if clicking on input/textarea in editor mode
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     if (editorMode) {
       // 编辑模式：点击上传图片
@@ -467,6 +514,65 @@ function createAvatarCard(avatar, index) {
 }
 
 /**
+ * 设置图片拖动功能（编辑模式）
+ */
+function setupImageDrag(img, index) {
+  let isDragging = false;
+  let startX, startY;
+  const avatar = avatarData[index];
+  const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
+
+  img.addEventListener('mousedown', startDrag);
+  img.addEventListener('touchstart', startDrag, { passive: false });
+
+  function startDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    isDragging = true;
+    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    startX = clientX - currentOffset.x;
+    startY = clientY - currentOffset.y;
+
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('touchend', stopDrag);
+  }
+
+  function drag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+    const newX = clientX - startX;
+    const newY = clientY - startY;
+
+    // 更新图片位置
+    avatar.imageOffset = { x: newX, y: newY };
+    img.style.transform = `translate(${newX}px, ${newY}px)`;
+  }
+
+  function stopDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+
+    // 保存偏移量到 localStorage
+    const savedOffsets = StorageManager?.load?.(AVATAR_OFFSETS_KEY) || {};
+    savedOffsets[avatar.id] = avatar.imageOffset;
+    StorageManager?.save?.(AVATAR_OFFSETS_KEY, savedOffsets);
+
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
+    document.removeEventListener('touchmove', drag);
+    document.removeEventListener('touchend', stopDrag);
+  }
+}
+
+/**
  * Update avatar name
  */
 function updateAvatarName(index, newName) {
@@ -476,6 +582,18 @@ function updateAvatarName(index, newName) {
   const savedNames = StorageManager?.load?.('avatar_names') || {};
   savedNames[avatarData[index].id] = newName;
   StorageManager?.save?.('avatar_names', savedNames);
+}
+
+/**
+ * Update avatar remark
+ */
+function updateAvatarRemark(index, newRemark) {
+  avatarData[index].remark = newRemark;
+
+  // 保存备注到 localStorage
+  const savedRemarks = StorageManager?.load?.(AVATAR_REMARKS_KEY) || {};
+  savedRemarks[avatarData[index].id] = newRemark;
+  StorageManager?.save?.(AVATAR_REMARKS_KEY, savedRemarks);
 }
 
 /**
