@@ -912,7 +912,7 @@ function showSuccessAndTransition() {
   overlay.classList.add('active');
 
   // Typewriter effect
-  const message = '这才是属于我们的故事';
+  const message = '这才是属于我们的故事...';
   typewriterEffect(messageEl, message, () => {
     // After typewriter completes, wait 1.5s then transition
     countdownTimer = setTimeout(() => {
