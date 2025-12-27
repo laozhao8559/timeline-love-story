@@ -294,7 +294,8 @@ const avatarData = [
     position: 'top-left', // 左上角
     remark: '',
     imageOffset: { x: 0, y: 0 },
-    imageScale: 1
+    imageScale: 1,
+    escapeMessage: '我很帅，但我只是路过你人生的一段风景。'
   },
   {
     id: 'top-right',
@@ -305,7 +306,8 @@ const avatarData = [
     position: 'top-right', // 右上角
     remark: '',
     imageOffset: { x: 0, y: 0 },
-    imageScale: 1
+    imageScale: 1,
+    escapeMessage: '我可以给你浪漫，但给不了你一辈子的琐碎日常。'
   },
   {
     id: 'bottom-left',
@@ -316,7 +318,8 @@ const avatarData = [
     position: 'bottom-left', // 左下角
     remark: '',
     imageOffset: { x: 0, y: 0 },
-    imageScale: 1
+    imageScale: 1,
+    escapeMessage: '我懂浪漫，却没参与过你真正的人生。'
   },
   {
     id: 'bottom-right',
@@ -327,7 +330,8 @@ const avatarData = [
     position: 'bottom-right', // 右下角
     remark: '',
     imageOffset: { x: 0, y: 0 },
-    imageScale: 1
+    imageScale: 1,
+    escapeMessage: '哈哈，我还是更适合出现在热搜里，不是你的人生里。'
   }
 ];
 
@@ -831,6 +835,10 @@ function handleAvatarClick(avatar, card) {
 function makeAvatarEscape(card) {
   if (card.classList.contains('escaping')) return;
 
+  // 获取当前avatar的信息
+  const avatarId = card.dataset.avatarId;
+  const avatar = avatarData.find(a => a.id === avatarId);
+
   // 根据卡片位置决定逃跑方向
   if (card.classList.contains('top-left')) {
     card.classList.add('escaping'); // CSS 会根据 top-left 类自动处理逃跑方向
@@ -841,6 +849,54 @@ function makeAvatarEscape(card) {
   } else if (card.classList.contains('bottom-right')) {
     card.classList.add('escaping');
   }
+
+  // 动画结束后显示留言
+  setTimeout(() => {
+    if (avatar && avatar.escapeMessage) {
+      showEscapeMessage(card, avatar.escapeMessage, avatar.name);
+    }
+  }, 800); // 与CSS动画时长一致
+}
+
+/**
+ * 显示逃跑后的留言
+ */
+function showEscapeMessage(card, message, name) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'avatar-escape-message';
+
+  // 根据卡片位置添加对应的类名
+  if (card.classList.contains('top-left')) {
+    messageDiv.classList.add('position-top-left');
+  } else if (card.classList.contains('top-right')) {
+    messageDiv.classList.add('position-top-right');
+  } else if (card.classList.contains('bottom-left')) {
+    messageDiv.classList.add('position-bottom-left');
+  } else if (card.classList.contains('bottom-right')) {
+    messageDiv.classList.add('position-bottom-right');
+  }
+
+  // 创建文字元素，添加 data-text 属性用于扫光效果
+  const textDiv = document.createElement('div');
+  textDiv.className = 'escape-message-text';
+  textDiv.textContent = message;
+  textDiv.setAttribute('data-text', message);
+
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'escape-message-name';
+  nameDiv.textContent = `——${name}`;
+
+  messageDiv.appendChild(textDiv);
+  messageDiv.appendChild(nameDiv);
+
+  // 插入到avatar-grid中（与卡片同级）
+  const grid = document.getElementById('avatar-grid');
+  grid.appendChild(messageDiv);
+
+  // 淡入动画
+  setTimeout(() => {
+    messageDiv.classList.add('visible');
+  }, 50);
 }
 
 /**
