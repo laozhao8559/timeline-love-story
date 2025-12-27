@@ -89,7 +89,6 @@
 }
 
 /* Apply animations */
-
 .heart-pulse {
   animation: pulse 1s ease-in-out infinite;
 }
@@ -136,9 +135,7 @@
   transform: translateY(0);
 }
 
-/* ========== Content Block Entry Animations (PPT Style) ========== */
-
-/* 初始状态 - 内容块默认隐藏 */
+/* ========== Content Block Entry Animations ========== */
 .timeline-text-block,
 .timeline-image,
 .video-wrapper {
@@ -146,17 +143,14 @@
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 淡入 */
 .animate-fadeIn {
   animation: fadeIn 0.6s ease-out forwards;
 }
 
-/* 从下滑入 */
 .animate-slideUp {
   animation: slideUp 0.6s ease-out forwards;
 }
 
-/* 从上滑入 */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -171,7 +165,6 @@
   animation: slideDown 0.6s ease-out forwards;
 }
 
-/* 从左滑入 */
 @keyframes slideInLeft {
   from {
     opacity: 0;
@@ -186,7 +179,6 @@
   animation: slideInLeft 0.6s ease-out forwards;
 }
 
-/* 从右滑入 */
 @keyframes slideInRight {
   from {
     opacity: 0;
@@ -201,7 +193,6 @@
   animation: slideInRight 0.6s ease-out forwards;
 }
 
-/* 缩放进入 */
 @keyframes zoomIn {
   from {
     opacity: 0;
@@ -216,7 +207,6 @@
   animation: zoomIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* 旋转进入 */
 @keyframes rotateIn {
   from {
     opacity: 0;
@@ -231,7 +221,6 @@
   animation: rotateIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* 弹跳进入 */
 @keyframes bounceIn {
   0% {
     opacity: 0;
@@ -252,7 +241,6 @@
   animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
 }
 
-/* 翻转进入 */
 @keyframes flipInX {
   from {
     opacity: 0;
@@ -267,7 +255,6 @@
   animation: flipInX 0.6s ease-out forwards;
 }
 
-/* 内容块已进入可见状态 */
 .timeline-text-block.visible,
 .timeline-image.visible,
 .video-wrapper.visible {
@@ -275,7 +262,6 @@
 }
 
 /* ========== Editor Mode Override ========== */
-/* 编辑模式下禁用滚动动画，节点始终可见 */
 body.editor-mode .timeline-node {
   opacity: 1 !important;
   transform: none !important;
@@ -286,7 +272,6 @@ body.editor-mode .timeline-ending {
   transform: none !important;
 }
 
-/* 编辑模式下内容块也始终可见，无动画 */
 body.editor-mode .timeline-text-block,
 body.editor-mode .timeline-image,
 body.editor-mode .video-wrapper {
@@ -294,9 +279,7 @@ body.editor-mode .video-wrapper {
   animation: none !important;
 }
 
-/* ========== Shake Animation ==========
-   抖动动画 - 用于求婚页错误选择反馈
-*/
+/* ========== Shake Animation ========== */
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);
@@ -309,20 +292,16 @@ body.editor-mode .video-wrapper {
   }
 }
 
-/* ========== Easter Egg Animations ==========
-   时间轴彩蛋动画 - 全屏覆盖层版本
-*/
+/* ========== Easter Egg Animations - 终版（四阶段情绪曲线） ========== */
 
-/* 原时间轴模糊效果 */
-.timeline-container.easter-egg-blur {
-  opacity: 0.15;
-  filter: blur(8px);
-  transition: opacity 1.5s ease-out, filter 1.5s ease-out;
-  pointer-events: none;
+/* ========== 阶段1：世界安静下来 ========== */
+.timeline-container.easter-egg-stage1 {
+  transform: scale(0.98);
+  transition: transform 0.6s ease;
 }
 
-/* 全屏覆盖层 */
-.easter-egg-fullscreen-overlay {
+/* ========== 全屏 Overlay 容器 ========== */
+.easter-egg-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -332,14 +311,18 @@ body.editor-mode .video-wrapper {
   opacity: 0;
   pointer-events: none;
   transition: opacity 1s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
 }
 
-.easter-egg-fullscreen-overlay.visible {
+.easter-egg-overlay.visible {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* 背景图片容器 */
+/* ========== 阶段2：背景图片轮播 ========== */
 .easter-egg-background {
   position: absolute;
   top: 0;
@@ -347,6 +330,11 @@ body.editor-mode .video-wrapper {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.easter-egg-background.fade-out {
+  opacity: 0;
+  transition: opacity 1s ease-out;
 }
 
 .easter-egg-background .background-image {
@@ -358,7 +346,6 @@ body.editor-mode .video-wrapper {
   left: 0;
 }
 
-/* 背景图片动画 - 淡入 */
 .easter-egg-background .background-image.fade-in {
   animation: bgFadeIn 3s ease-out forwards;
 }
@@ -372,7 +359,6 @@ body.editor-mode .video-wrapper {
   }
 }
 
-/* 背景图片动画 - 缩放 */
 .easter-egg-background .background-image.zoom-in {
   animation: bgZoomIn 3s ease-out forwards;
 }
@@ -388,7 +374,6 @@ body.editor-mode .video-wrapper {
   }
 }
 
-/* 背景图片动画 - 滑入 */
 .easter-egg-background .background-image.slide-in {
   animation: bgSlideIn 3s ease-out forwards;
 }
@@ -404,22 +389,42 @@ body.editor-mode .video-wrapper {
   }
 }
 
-/* 遮罩层（让背景图片稍微暗一点） */
-.easter-egg-background::after {
+/* 淡入淡出效果（阶段2使用） */
+.easter-egg-background .background-image.crossfade {
+  animation: bgCrossfade 0.6s ease-in-out forwards;
+}
+
+@keyframes bgCrossfade {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.3;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.easter-egg-background::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
   pointer-events: none;
+  z-index: 1;
 }
 
-/* 前景内容容器 */
-.easter-egg-foreground {
+/* ========== 阶段3：终极文字 ========== */
+.easter-egg-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   height: 100%;
   display: flex;
@@ -429,14 +434,50 @@ body.editor-mode .video-wrapper {
   padding: 40px 20px;
 }
 
-/* 文字容器 */
+/* ========== 阶段1：开场文案 ========== */
+.easter-egg-intro-text {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: #FFFFFF;
+  text-shadow:
+    0 0 15px rgba(255, 255, 255, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 1s ease-out;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.easter-egg-intro-text.visible {
+  opacity: 1;
+}
+
 .easter-egg-text-container {
   text-align: center;
   max-width: 900px;
   margin-bottom: 60px;
 }
 
-/* 文字行 */
+/* ========== 阶段2：三句文字样式 ========== */
+.easter-egg-stage2-text-line {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: #FFFFFF;
+  text-shadow:
+    0 0 15px rgba(255, 255, 255, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  margin: 12px 0;
+  opacity: 0;
+  transition: opacity 0.8s ease-out;
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+}
+
+.easter-egg-stage2-text-line.visible {
+  opacity: 1;
+}
+
 .easter-egg-text-line {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: clamp(1.8rem, 4vw, 3rem);
@@ -447,7 +488,13 @@ body.editor-mode .video-wrapper {
   margin: 20px 0;
   opacity: 0;
   line-height: 1.6;
-  animation: textLineFadeIn 1.5s ease-out forwards;
+  transition: opacity 1s ease-out, transform 1s ease-out;
+  transform: translateY(20px);
+}
+
+.easter-egg-text-line.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .easter-egg-text-line:last-child {
@@ -459,18 +506,7 @@ body.editor-mode .video-wrapper {
     0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
-@keyframes textLineFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ========== 彩蛋按钮样式 ========== */
+/* ========== 阶段4：继续按钮 ========== */
 .easter-egg-continue-btn {
   padding: 1rem 2.5rem;
   font-family: 'Georgia', 'Times New Roman', serif;
@@ -507,7 +543,7 @@ body.editor-mode .video-wrapper {
   animation: sparkle 2s ease-in-out infinite;
 }
 
-/* 未来节点样式 */
+/* ========== 未来节点样式 ========== */
 .future-node {
   background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(196, 69, 105, 0.1) 100%);
   border-radius: 16px;
