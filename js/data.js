@@ -14,33 +14,53 @@ const timelineData = [
   {
     id: 1,
     date: '2021.12.01',
-    title: '我们加了微信',
+    title: '我们加上了微信',
     isHighlight: false,
-    contents: []  // 空白画布 - 不预设任何内容
+    contents: [
+      {
+        type: 'text',
+        content: '那天并不知道，\n这一句简单的"你好"，\n会成为我这一生\n最重要的一次点击。'
+      }
+    ]
   },
 
   {
     id: 2,
     date: '2022.03.30',
-    title: '领结婚证',
+    title: '我们领了结婚证',
     isHighlight: true,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '原来真正的浪漫，\n不是誓言有多大声，\n而是从这一天起，\n世界上多了一个人\n和我一起对抗生活。'
+      }
+    ]
   },
 
   {
     id: 3,
     date: '2022.05.02',
-    title: '婚礼',
+    title: '我们的婚礼',
     isHighlight: true,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '那一天，我看着你走向我，\n忽然明白了一件事：\n\n从今以后，\n所有的"我"，\n都变成了"我们"。'
+      }
+    ]
   },
 
   {
     id: 4,
     date: '2022.09.04',
-    title: '第一次一起旅行',
+    title: '第一次一起旅行 · 三峡大坝 / 西陵峡',
     isHighlight: false,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '那是我们第一次真正走远，\n没有计划得多完美，\n但一路都有笑声。\n\n原来，\n只要和你在一起，\n去哪里都算远方。'
+      }
+    ]
   },
 
   {
@@ -48,55 +68,59 @@ const timelineData = [
     date: '2023.01.31',
     title: '刘知意出生',
     isHighlight: true,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '谢谢你，\n用你的勇敢和温柔，\n把一个小生命\n带进了我们的世界。\n\n从那一刻起，\n我不再只是爱你，\n也开始学着\n成为一个父亲。'
+      }
+    ]
   },
 
   {
     id: 6,
-    date: '2023.06',
-    title: '红花湖18km骑行',
+    date: '2023',
+    title: '那些一起走过的日子',
     isHighlight: false,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '惠州红花湖 18 公里骑行\n\n有风，有汗，有坚持，\n还有并肩前行的默契。'
+      },
+      {
+        type: 'text',
+        content: '岳麓山 / 罗浮山 / 梧桐山\n\n山很高，\n但你在身边，\n每一步都走得很安心。'
+      },
+      {
+        type: 'text',
+        content: '深圳天文台\n\n那天看见星空的时候，\n我突然觉得，\n我已经拥有了\n属于我的宇宙。'
+      }
+    ]
   },
 
   {
     id: 7,
-    date: '2023.08',
-    title: '岳麓山、罗浮山',
+    date: '2024',
+    title: '和女儿一起的第一次们',
     isHighlight: false,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '武汉动物园 / 江滩 / 彩虹滑梯\n\n她的笑声，\n成了我们世界里\n最温柔的背景音。\n\n谢谢你，\n让我看见你成为母亲的样子。'
+      }
+    ]
   },
 
   {
     id: 8,
-    date: '2023.10',
-    title: '梧桐山、深圳天文台',
-    isHighlight: false,
-    contents: []
-  },
-
-  {
-    id: 9,
-    date: '2024.01',
-    title: '防城港、北海银滩',
-    isHighlight: false,
-    contents: []
-  },
-
-  {
-    id: 10,
-    date: '2024.05',
-    title: '带女儿去武汉',
-    isHighlight: false,
-    contents: []
-  },
-
-  {
-    id: 11,
     date: '2025.11',
-    title: '九寨沟 & 黄龙',
+    title: '九寨沟 · 黄龙 · 成都',
     isHighlight: true,
-    contents: []
+    contents: [
+      {
+        type: 'text',
+        content: '彩林、海子、人海，\n世界依旧很大。\n\n但我最庆幸的是，\n这些风景，\n你都在我身边。'
+      }
+    ]
   }
 ];
 
