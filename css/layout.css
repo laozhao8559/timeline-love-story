@@ -288,7 +288,7 @@
   cursor: pointer;
   transition: transform var(--transition-normal);
   box-shadow: var(--shadow-sm);
-  object-fit: cover;
+  object-fit: contain; /* 完整显示图片，不裁切 */
   aspect-ratio: 1 / 1;
 }
 
@@ -437,7 +437,7 @@
   cursor: pointer;
   transition: transform var(--transition-normal);
   box-shadow: var(--shadow-sm);
-  object-fit: cover;
+  object-fit: contain; /* 完整显示图片，不裁切 */
   aspect-ratio: 16 / 9;
 }
 
