@@ -54,6 +54,7 @@ const StorageManager = {
     localStorage.removeItem(STORAGE_KEYS.STANDALONE_BLOCKS);
     localStorage.removeItem(STORAGE_KEYS.ENDING_CONFIG);
     localStorage.removeItem(STORAGE_KEYS.MUSIC_DATA);
+    localStorage.removeItem(STORAGE_KEYS.EDITOR_MODE); // Clear editor mode state
   },
 
   getUsage() {
@@ -1193,7 +1194,7 @@ function importData() {
 function clearAllData() {
   if (confirm('确定要清除所有编辑数据吗？此操作不可恢复！')) {
     StorageManager.clearAll();
-    showToast('数据已清除，请刷新页面', 'success');
+    location.reload(); // Auto reload after clearing
   }
 }
 
