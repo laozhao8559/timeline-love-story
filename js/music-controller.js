@@ -114,49 +114,52 @@ function attemptAutoplay() {
 
 /**
  * 切换声音开关
- * 🎵 → 🔊 (渐入到60%)
+ * 🎵 → 🔊 (渐入到当前场景音量)
  * 🔊 → 🎵 (渐出到0)
+ * 音乐一直在播放，不暂停
  */
 function toggleMusic() {
   if (!bgMusic) return;
 
   if (isMuted) {
-    // 开启声音：渐入
-    unmuteMusic();
+    // 开启声音：渐入到当前场景音量
+    isMuted = false;
+    const targetVol = SCENE_VOLUMES[currentScene] || SCENE_VOLUMES.normal;
+    console.log('[Music] 开启声音，渐入到', targetVol);
+    fadeInMusic(targetVol, 1000);
   } else {
-    // 关闭声音：渐出
-    muteMusic();
+    // 关闭声音：渐出到0
+    isMuted = true;
+    console.log('[Music] 关闭声音，渐出');
+    fadeOutMusic(800);
   }
+
+  updateMusicUI();
 }
 
 /**
- * 开启声音（渐入）
+ * 开启声音（渐入）- 只改变音量，音乐一直在播放
  */
 function unmuteMusic() {
   if (!bgMusic) return;
 
-  // 如果还没播放，先播放
-  if (!isMusicPlaying) {
-    bgMusic.play().catch(err => console.warn('[Music] 播放失败:', err));
-  }
-
   isMuted = false;
   const targetVol = SCENE_VOLUMES[currentScene] || SCENE_VOLUMES.normal;
-
   console.log('[Music] 开启声音，渐入到', targetVol);
   fadeInMusic(targetVol, 1000);
+  updateMusicUI();
 }
 
 /**
- * 关闭声音（渐出）
+ * 关闭声音（渐出）- 只改变音量，音乐一直在播放
  */
 function muteMusic() {
   if (!bgMusic) return;
 
   isMuted = true;
-
   console.log('[Music] 关闭声音，渐出');
   fadeOutMusic(800);
+  updateMusicUI();
 }
 
 /**
