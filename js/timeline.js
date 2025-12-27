@@ -76,12 +76,45 @@ function createStandaloneBlock(block) {
       </div>
     `;
   } else if (block.type === 'image') {
-    wrapper.innerHTML = `
-      <div class="standalone-media">
-        <img src="${block.src}" alt="${escapeHtml(block.alt || '')}" class="standalone-image" onclick="openLightbox('${block.src}', '${escapeHtml(block.alt || '')}')">
-        ${block.caption ? `<p class="standalone-caption">${escapeHtml(block.caption)}</p>` : ''}
-      </div>
-    `;
+    const mediaDiv = document.createElement('div');
+    mediaDiv.className = 'standalone-media';
+
+    const img = document.createElement('img');
+    img.alt = escapeHtml(block.alt || '');
+    img.className = 'standalone-image';
+
+    // 检查是否为 IndexedDB 引用
+    if (isIndexedDBRef(block.src)) {
+      // 异步加载 IndexedDB 图片
+      loadImageFromIndexedDB(extractImageId(block.src))
+        .then(base64 => {
+          img.src = base64;
+          console.log('[createStandaloneBlock] IndexedDB 图片加载成功:', block.src);
+        })
+        .catch(err => {
+          console.error('[createStandaloneBlock] IndexedDB 图片加载失败:', err);
+          img.alt = '加载失败: ' + (block.alt || '');
+        });
+    } else {
+      img.src = block.src;
+    }
+
+    // 点击事件：使用异步加载的实际 src
+    img.addEventListener('click', () => {
+      const actualSrc = isIndexedDBRef(block.src) ? img.src : block.src;
+      openLightbox(actualSrc, block.alt);
+    });
+
+    mediaDiv.appendChild(img);
+
+    if (block.caption) {
+      const caption = document.createElement('p');
+      caption.className = 'standalone-caption';
+      caption.textContent = escapeHtml(block.caption);
+      mediaDiv.appendChild(caption);
+    }
+
+    wrapper.appendChild(mediaDiv);
   } else if (block.type === 'video') {
     const videoWrapper = createVideoElement(block);
     wrapper.appendChild(videoWrapper);
@@ -169,11 +202,32 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
 
   } else if (contentBlock.type === 'image') {
     const img = document.createElement('img');
-    img.src = contentBlock.src;
     img.alt = contentBlock.alt || '';
     img.className = 'timeline-image';
-    // 移除 loading='lazy' 以确保图片立即加载
-    img.addEventListener('click', () => openLightbox(contentBlock.src, contentBlock.alt));
+
+    // 检查是否为 IndexedDB 引用
+    if (isIndexedDBRef(contentBlock.src)) {
+      // 异步加载 IndexedDB 图片
+      loadImageFromIndexedDB(extractImageId(contentBlock.src))
+        .then(base64 => {
+          img.src = base64;
+          console.log('[createContentBlock] IndexedDB 图片加载成功:', contentBlock.src);
+        })
+        .catch(err => {
+          console.error('[createContentBlock] IndexedDB 图片加载失败:', err);
+          img.alt = '加载失败: ' + (contentBlock.alt || '');
+        });
+    } else {
+      // 直接使用 src
+      img.src = contentBlock.src;
+    }
+
+    // 点击事件：使用异步加载的实际 src
+    img.addEventListener('click', () => {
+      const actualSrc = isIndexedDBRef(contentBlock.src) ? img.src : contentBlock.src;
+      openLightbox(actualSrc, contentBlock.alt);
+    });
+
     // 添加随机动画类和数据属性
     img.classList.add(randomAnimation);
     img.dataset.animate = randomAnimation;

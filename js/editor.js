@@ -284,8 +284,9 @@ function addStandaloneBlock(insertAfterIndex, type, data = {}) {
 
 /**
  * Handle standalone block file upload
+ * 使用 IndexedDB 存储图片，支持刷新后持久化
  */
-function handleStandaloneFileUpload(file, insertAfterIndex) {
+async function handleStandaloneFileUpload(file, insertAfterIndex) {
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
 
@@ -294,18 +295,43 @@ function handleStandaloneFileUpload(file, insertAfterIndex) {
     return;
   }
 
-  const objectUrl = URL.createObjectURL(file);
-  objectURLs.push(objectUrl);
+  // 视频仍使用 Blob URL
+  if (isVideo) {
+    const objectUrl = URL.createObjectURL(file);
+    objectURLs.push(objectUrl);
+    addStandaloneBlock(insertAfterIndex, 'video', { src: objectUrl });
+    return;
+  }
 
-  const data = {
-    src: objectUrl
-  };
+  // 图片使用 IndexedDB 存储
+  try {
+    if (!isIndexedDBAvailable()) {
+      throw new Error('IndexedDB 不可用');
+    }
 
-  if (isImage) {
-    data.alt = file.name;
+    showToast('正在保存图片...', 'info');
+
+    // 保存到 IndexedDB
+    const imageId = await saveImageToIndexedDB(file, 'standalone');
+
+    // 使用 IndexedDB 引用
+    const data = {
+      src: `indexeddb:${imageId}`,
+      alt: file.name
+    };
+
     addStandaloneBlock(insertAfterIndex, 'image', data);
-  } else {
-    addStandaloneBlock(insertAfterIndex, 'video', data);
+    showToast('图片已保存', 'success');
+    updateStorageIndicator();
+
+  } catch (error) {
+    console.error('保存图片失败:', error);
+
+    // 降级方案
+    showToast('IndexedDB 不可用，使用临时存储', 'warning');
+    const objectUrl = URL.createObjectURL(file);
+    objectURLs.push(objectUrl);
+    addStandaloneBlock(insertAfterIndex, 'image', { src: objectUrl, alt: file.name });
   }
 }
 
@@ -613,8 +639,9 @@ function addContentBlockToNode(nodeIndex, type, data = {}) {
 
 /**
  * Handle file upload for content block
+ * 使用 IndexedDB 存储图片，支持刷新后持久化
  */
-function handleBlockFileUpload(file, nodeIndex, type) {
+async function handleBlockFileUpload(file, nodeIndex, type) {
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
 
@@ -627,16 +654,43 @@ function handleBlockFileUpload(file, nodeIndex, type) {
     return;
   }
 
-  const objectUrl = URL.createObjectURL(file);
-  objectURLs.push(objectUrl);
+  // 视频仍使用 Blob URL（视频文件通常太大）
+  if (isVideo) {
+    const objectUrl = URL.createObjectURL(file);
+    objectURLs.push(objectUrl);
+    addContentBlockToNode(nodeIndex, 'video', { src: objectUrl });
+    return;
+  }
 
-  const data = { src: objectUrl };
+  // 图片使用 IndexedDB 存储
+  try {
+    if (!isIndexedDBAvailable()) {
+      throw new Error('IndexedDB 不可用');
+    }
 
-  if (isImage) {
-    data.alt = file.name;
+    showToast('正在保存图片...', 'info');
+
+    // 保存到 IndexedDB
+    const imageId = await saveImageToIndexedDB(file, 'timeline');
+
+    // 使用 IndexedDB 引用
+    const data = {
+      src: `indexeddb:${imageId}`,
+      alt: file.name
+    };
+
     addContentBlockToNode(nodeIndex, 'image', data);
-  } else {
-    addContentBlockToNode(nodeIndex, 'video', data);
+    showToast('图片已保存', 'success');
+    updateStorageIndicator();
+
+  } catch (error) {
+    console.error('保存图片失败:', error);
+
+    // 降级方案：使用 Blob URL（临时）
+    showToast('IndexedDB 不可用，使用临时存储', 'warning');
+    const objectUrl = URL.createObjectURL(file);
+    objectURLs.push(objectUrl);
+    addContentBlockToNode(nodeIndex, 'image', { src: objectUrl, alt: file.name });
   }
 }
 
@@ -680,14 +734,39 @@ function createEditableContentBlock(contentBlock, nodeIndex, contentIndex) {
       onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'content', this.value)"
       placeholder="在这里写下你的故事...">${escapeHtml(contentBlock.content || '')}</textarea>`;
   } else if (contentBlock.type === 'image') {
+    // 检查是否为 IndexedDB 引用
+    const isIdbRef = isIndexedDBRef(contentBlock.src);
+    const displaySrc = isIdbRef ? '' : (contentBlock.src || '');
+    const loadingText = isIdbRef ? '加载中...' : '';
+
     contentArea.innerHTML = `
       <div class="block-media-wrapper">
-        <img src="${contentBlock.src}" alt="${escapeHtml(contentBlock.alt || '')}" class="block-image">
+        <img src="${displaySrc}" data-idb-ref="${contentBlock.src || ''}" alt="${escapeHtml(contentBlock.alt || '')}" class="block-image">${loadingText}
         <button class="block-replace-btn" onclick="replaceBlockMedia(${nodeIndex}, ${contentIndex})">🔄 替换图片</button>
       </div>
       <textarea class="block-caption-edit" rows="1" placeholder="添加说明文字..."
         onchange="updateContentBlock(${nodeIndex}, ${contentIndex}, 'caption', this.value)">${escapeHtml(contentBlock.caption || '')}</textarea>
     `;
+
+    // 如果是 IndexedDB 引用，异步加载图片
+    if (isIdbRef) {
+      const imgEl = contentArea.querySelector('img');
+      const wrapper = contentArea.querySelector('.block-media-wrapper');
+      loadImageFromIndexedDB(extractImageId(contentBlock.src))
+        .then(base64 => {
+          imgEl.src = base64;
+          // 移除加载提示文字
+          const textNode = wrapper.childNodes[wrapper.childNodes.length - 1];
+          if (textNode.nodeType === Node.TEXT_NODE && textNode.textContent.includes('加载中')) {
+            wrapper.removeChild(textNode);
+          }
+        })
+        .catch(err => {
+          console.error('IndexedDB 加载图片失败:', err);
+          imgEl.alt = '加载失败';
+          imgEl.style.opacity = '0.5';
+        });
+    }
   } else if (contentBlock.type === 'video') {
     contentArea.innerHTML = `
       <div class="block-media-wrapper">
@@ -707,30 +786,70 @@ function createEditableContentBlock(contentBlock, nodeIndex, contentIndex) {
 
 /**
  * Replace media in content block
+ * 使用 IndexedDB 存储图片，支持刷新后持久化
  */
-function replaceBlockMedia(nodeIndex, contentIndex) {
+async function replaceBlockMedia(nodeIndex, contentIndex) {
   const currentBlock = editingData[nodeIndex].contents[contentIndex];
   const acceptType = currentBlock.type === 'image' ? 'image/*' : 'video/*';
 
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = acceptType;
-  input.onchange = (e) => {
+  input.onchange = async (e) => {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
-      const objectUrl = URL.createObjectURL(file);
-      objectURLs.push(objectUrl);
 
-      if (currentBlock.type === 'image') {
+      if (currentBlock.type === 'video') {
+        // 视频使用 Blob URL
+        const objectUrl = URL.createObjectURL(file);
+        objectURLs.push(objectUrl);
         currentBlock.src = objectUrl;
-        currentBlock.alt = file.name;
+
+        saveData();
+        renderTimelineWithEditControls();
+        showToast('已替换', 'success');
       } else {
-        currentBlock.src = objectUrl;
-      }
+        // 图片使用 IndexedDB
+        try {
+          if (!isIndexedDBAvailable()) {
+            throw new Error('IndexedDB 不可用');
+          }
 
-      saveData();
-      renderTimelineWithEditControls();
-      showToast('已替换', 'success');
+          showToast('正在保存图片...', 'info');
+
+          // 如果旧图片也是 IndexedDB 引用，删除它
+          if (isIndexedDBRef(currentBlock.src)) {
+            const oldImageId = extractImageId(currentBlock.src);
+            try {
+              await deleteImageFromIndexedDB(oldImageId);
+            } catch (err) {
+              console.warn('删除旧图片失败:', err);
+            }
+          }
+
+          const imageId = await saveImageToIndexedDB(file, 'timeline');
+          currentBlock.src = `indexeddb:${imageId}`;
+          currentBlock.alt = file.name;
+
+          saveData();
+          renderTimelineWithEditControls();
+          showToast('已替换', 'success');
+          updateStorageIndicator();
+
+        } catch (error) {
+          console.error('保存图片失败:', error);
+
+          // 降级方案
+          showToast('使用临时存储', 'warning');
+          const objectUrl = URL.createObjectURL(file);
+          objectURLs.push(objectUrl);
+          currentBlock.src = objectUrl;
+          currentBlock.alt = file.name;
+
+          saveData();
+          renderTimelineWithEditControls();
+        }
+      }
     }
   };
   input.click();
@@ -1160,13 +1279,28 @@ function formatFileSize(bytes) {
 
 /**
  * Update storage indicator
+ * 显示 localStorage 和 IndexedDB 的使用情况
  */
-function updateStorageIndicator() {
+async function updateStorageIndicator() {
   const indicator = document.querySelector('.storage-indicator');
   if (!indicator) return;
 
+  // localStorage 使用情况
   const usage = StorageManager.getUsage();
-  indicator.textContent = `存储: ${formatFileSize(usage.used)} / ~5MB`;
+  const lsText = `localStorage: ${formatFileSize(usage.used)} / ~5MB`;
+
+  // IndexedDB 使用情况
+  let idbText = '';
+  if (isIndexedDBAvailable()) {
+    try {
+      const idbUsage = await getIndexedDBUsage();
+      idbText = ` | IndexedDB: ${formatFileSize(idbUsage.used)} (${idbUsage.count}张)`;
+    } catch (err) {
+      console.error('获取 IndexedDB 使用情况失败:', err);
+    }
+  }
+
+  indicator.textContent = lsText + idbText;
 
   indicator.classList.remove('warning', 'danger');
   if (usage.percentage > 80) {
