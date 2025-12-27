@@ -107,6 +107,11 @@ function handlePageInit(pageKey) {
       }
       initScrollAnimations();
       initMusicWithEditor();
+
+      // 初始化彩蛋检测（仅在非编辑模式）
+      if (!editorMode && typeof initEasterEgg === 'function') {
+        initEasterEgg();
+      }
       break;
   }
 }

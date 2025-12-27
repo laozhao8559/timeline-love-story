@@ -308,3 +308,238 @@ body.editor-mode .video-wrapper {
     transform: translateX(10px);
   }
 }
+
+/* ========== Easter Egg Animations ==========
+   时间轴彩蛋动画
+*/
+
+/* 阶段1：世界安静下来 */
+body.easter-egg-dim {
+  transition: background-color 1.5s ease-out;
+}
+
+body.easter-egg-dim::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  animation: dimFadeIn 1.5s ease-out forwards;
+}
+
+@keyframes dimFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* 时间轴缩小效果 */
+.timeline-container.easter-egg-scale {
+  transition: transform 1.5s ease-out;
+  transform: scale(0.98);
+}
+
+/* 阶段1覆盖层 */
+.easter-egg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.easter-egg-overlay.visible {
+  opacity: 1;
+}
+
+/* 阶段1：手写体文字 */
+.easter-egg-overlay.stage-1 .easter-egg-message {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  color: white;
+  text-align: center;
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 0.5),
+    0 0 40px rgba(255, 182, 193, 0.3);
+  animation: textGlow 2s ease-in-out infinite;
+  max-width: 80%;
+  line-height: 1.6;
+}
+
+@keyframes textGlow {
+  0%, 100% {
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.5),
+      0 0 40px rgba(255, 182, 193, 0.3);
+  }
+  50% {
+    text-shadow:
+      0 0 30px rgba(255, 255, 255, 0.8),
+      0 0 60px rgba(255, 182, 193, 0.5);
+  }
+}
+
+/* 阶段2：回忆闪回容器 */
+.easter-egg-flashback {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: none;
+  transition: opacity 0.5s ease-out;
+}
+
+.easter-egg-flashback.fade-out {
+  opacity: 0;
+}
+
+/* 照片模式 */
+.flashback-photo {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.flashback-photo.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 文字模式 */
+.easter-egg-flashback.text-mode {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.flashback-text {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: white;
+  text-align: center;
+  max-width: 80%;
+  line-height: 1.8;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 阶段3：终极文字 */
+.easter-egg-overlay.stage-3 {
+  flex-direction: column;
+  padding: 20px;
+}
+
+.final-words-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+.final-word-line {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  color: white;
+  text-align: center;
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 0.6),
+    0 2px 10px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+  white-space: pre-wrap;
+  line-height: 1.8;
+}
+
+#final-line-2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: #FFB3D1;
+  margin-top: 1rem;
+}
+
+/* 阶段4：继续按钮 */
+.easter-egg-continue-btn {
+  pointer-events: auto;
+  margin-top: 3rem;
+  padding: 1rem 2.5rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.2rem;
+  color: white;
+  background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 10px 30px rgba(255, 107, 157, 0.4);
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.easter-egg-continue-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.easter-egg-continue-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(255, 107, 157, 0.6);
+}
+
+.easter-egg-continue-btn:active {
+  transform: translateY(-1px);
+}
+
+.easter-egg-continue-btn .btn-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* 未来节点样式 */
+.future-node {
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(196, 69, 105, 0.1) 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+
+.future-node .timeline-date {
+  color: #FF6B9D;
+  font-weight: bold;
+}
+
+.future-node-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.future-node-placeholder p {
+  font-size: 1.1rem;
+  color: #999;
+}
