@@ -112,7 +112,7 @@
   aspect-ratio: 9 / 13; /* 调整比例，更矮一点 */
   max-height: 75vh; /* 增大最大高度 */
   margin: 0 auto;
-  padding-bottom: 50px; /* 给下方文字留空间 */
+  padding-bottom: 110px; /* 给下方控件留空间：名字、按钮、缩放 */
 }
 
 /* ========== 中间大图 - 圆形，核心 ========== */
@@ -125,7 +125,7 @@
   aspect-ratio: 1;
   background: var(--bg-card);
   border-radius: var(--radius-full);
-  overflow: hidden;
+  overflow: visible; /* 改为 visible，让外部控件可见 */
   box-shadow: 0 12px 48px rgba(255, 107, 157, 0.4);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -149,7 +149,7 @@
   height: 30%; /* 增大 */
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible; /* 改为 visible，让外部控件可见 */
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -196,20 +196,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: hidden; /* 在这里隐藏溢出，图片会被正确裁剪 */
   position: relative;
 }
 
 /* 中间圆形图 */
 .avatar-card.center .avatar-image-wrapper {
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full); /* 圆形裁剪 */
   background: linear-gradient(135deg, var(--accent-color), var(--primary-light));
 }
 
 /* 四角长方形图 */
 .avatar-card.corner .avatar-image-wrapper {
+  border-radius: var(--radius-lg); /* 圆角裁剪 */
   background: var(--primary-light);
-  border-radius: var(--radius-lg);
 }
 
 /* 图片样式 */
@@ -243,7 +243,7 @@
 /* ========== Avatar Name（名字） ========== */
 .avatar-name {
   position: absolute;
-  bottom: -45px;
+  bottom: -35px;
   left: 50%;
   transform: translateX(-50%);
   font-size: var(--font-size-sm);
@@ -251,133 +251,129 @@
   color: var(--text-primary);
   white-space: nowrap;
   text-align: center;
-  width: 150%;
+  width: 120%;
 }
 
 .avatar-card.center .avatar-name {
-  bottom: -55px;
+  bottom: -40px;
   font-size: var(--font-size-md);
   color: var(--primary-color);
   font-weight: 700;
-  width: 200%;
+  width: 150%;
 }
 
 /* 编辑模式下的名字输入框 */
 .avatar-name-input {
   position: absolute;
-  bottom: -45px;
+  bottom: -35px;
   left: 50%;
   transform: translateX(-50%);
-  width: 150%;
+  width: 120%;
   text-align: center;
   border: 1px dashed var(--primary-light);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: var(--font-size-sm);
+  padding: 3px 6px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.95);
+  height: 28px;
 }
 
 .avatar-card.center .avatar-name-input {
-  bottom: -55px;
-  width: 200%;
-  font-size: var(--font-size-md);
+  bottom: -40px;
+  width: 150%;
+  font-size: 14px;
   color: var(--primary-color);
   font-weight: 700;
   border-color: var(--accent-color);
 }
 
 /* ========== Avatar Remark（备注） ========== */
-.avatar-remark {
-  position: absolute;
-  bottom: -70px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  text-align: center;
-  width: 180%;
-  line-height: 1.3;
-}
-
-.avatar-card.center .avatar-remark {
-  bottom: -85px;
-  width: 220%;
-  font-size: 12px;
-}
-
-/* 编辑模式下的备注输入框 */
-.avatar-remark-input {
-  position: absolute;
-  bottom: -70px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 180%;
-  min-height: 24px;
-  text-align: center;
-  border: 1px dashed rgba(255, 107, 157, 0.4);
-  border-radius: var(--radius-sm);
-  padding: 3px 6px;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.9);
-  resize: none;
-  overflow: hidden;
-  line-height: 1.3;
-}
-
-.avatar-card.center .avatar-remark-input {
-  bottom: -85px;
-  width: 220%;
-  font-size: 12px;
-}
-
-.avatar-remark-input::placeholder {
-  color: rgba(147, 147, 147, 0.6);
-  font-size: 10px;
-}
+/* 备注功能已移除 */
 
 /* ========== Avatar Scale Control（缩放控制） ========== */
 .avatar-scale-control {
   position: absolute;
-  bottom: -95px;
+  bottom: -100px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 200%;
-  padding: 4px 8px;
+  gap: 4px;
+  width: 140%;
+  padding: 3px 6px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-sm);
   border: 1px dashed rgba(255, 107, 157, 0.5);
 }
 
+.avatar-card.center .avatar-scale-control {
+  bottom: -115px;
+  width: 170%;
+}
+
+.avatar-scale-slider {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, var(--primary-light), var(--primary-color));
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.avatar-scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-scale-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-scale-value {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--primary-color);
+  min-width: 32px;
+  text-align: right;
+}
+
 /* ========== Avatar Action Buttons（操作按钮） ========== */
 .avatar-action-buttons {
   position: absolute;
-  bottom: -135px;
+  bottom: -65px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 220%;
+  gap: 4px;
+  width: 150%;
 }
 
 .avatar-card.center .avatar-action-buttons {
-  bottom: -155px;
-  width: 260%;
+  bottom: -75px;
+  width: 180%;
 }
 
 .btn-avatar-action {
   flex: 1;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 3px 6px;
+  font-size: 9px;
   font-weight: 500;
   border: none;
   border-radius: var(--radius-sm);
@@ -386,7 +382,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
+  height: 24px;
 }
 
 .btn-avatar-reupload {
@@ -396,7 +393,7 @@
 
 .btn-avatar-reupload:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+  box-shadow: 0 2px 6px rgba(255, 107, 157, 0.4);
 }
 
 .btn-avatar-reupload:active {
@@ -416,51 +413,6 @@
 
 .btn-avatar-delete:active {
   background: rgba(255, 107, 157, 0.2);
-}
-
-.avatar-card.center .avatar-scale-control {
-  bottom: -110px;
-  width: 240%;
-}
-
-.avatar-scale-slider {
-  flex: 1;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: linear-gradient(to right, var(--primary-light), var(--primary-color));
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-
-.avatar-scale-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.avatar-scale-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  background: var(--primary-color);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.avatar-scale-value {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--primary-color);
-  min-width: 40px;
-  text-align: right;
 }
 
 /* ========== Escape Animation ========== */
@@ -611,7 +563,7 @@
 
   .avatar-grid {
     max-height: 60vh;
-    padding-bottom: 60px; /* 给下方控件更多空间 */
+    padding-bottom: 130px; /* 给下方控件留空间 */
   }
 
   .avatar-card .avatar-emoji {
@@ -634,32 +586,24 @@
     font-size: 13px;
   }
 
-  .avatar-remark, .avatar-remark-input {
-    font-size: 10px;
-  }
-
-  .avatar-card.center .avatar-remark, .avatar-card.center .avatar-remark-input {
-    font-size: 11px;
-  }
-
   .avatar-scale-control {
-    width: 220%;
-    bottom: -100px;
+    width: 160%;
+    bottom: -105px;
   }
 
   .avatar-card.center .avatar-scale-control {
-    width: 260%;
+    width: 190%;
     bottom: -120px;
   }
 
   .avatar-action-buttons {
-    bottom: -145px;
-    width: 240%;
+    bottom: -70px;
+    width: 170%;
   }
 
   .avatar-card.center .avatar-action-buttons {
-    bottom: -170px;
-    width: 280%;
+    bottom: -80px;
+    width: 200%;
   }
 }
 

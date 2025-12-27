@@ -528,19 +528,10 @@ function createAvatarCard(avatar, index) {
         onchange="updateAvatarName(${index}, this.value)">`
     : `<div class="avatar-name">${avatar.name}</div>`;
 
-  // Remark display: editable input in editor mode, plain text otherwise (only if has content)
-  let remarkHtml = '';
-  if (editorMode) {
-    remarkHtml = `<textarea class="avatar-remark-input" placeholder="添加备注..."
-      onchange="updateAvatarRemark(${index}, this.value)"
-      oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'">${escapeHtml(avatar.remark || '')}</textarea>`;
-  } else if (avatar.remark && avatar.remark.trim()) {
-    remarkHtml = `<div class="avatar-remark">${escapeHtml(avatar.remark)}</div>`;
-  }
-
   // Scale control (编辑模式，已上传图片时显示)
   let scaleHtml = '';
-  if (editorMode && avatar.photo) {
+  const hasPhoto = avatar.photo && avatar.photo.length > 0;
+  if (editorMode && hasPhoto) {
     const currentScale = Math.round((avatar.imageScale || 1) * 100);
     scaleHtml = `
       <div class="avatar-scale-control">
@@ -555,7 +546,7 @@ function createAvatarCard(avatar, index) {
 
   // Action buttons (编辑模式，已上传图片时显示)
   let actionButtonsHtml = '';
-  if (editorMode && avatar.photo) {
+  if (editorMode && hasPhoto) {
     actionButtonsHtml = `
       <div class="avatar-action-buttons">
         <button class="btn-avatar-action btn-avatar-reupload" onclick="event.stopPropagation(); uploadAvatarPhoto(${index})">
@@ -573,13 +564,12 @@ function createAvatarCard(avatar, index) {
       ${avatarContent}
     </div>
     ${nameHtml}
-    ${remarkHtml}
     ${scaleHtml}
     ${actionButtonsHtml}
   `;
 
   // 编辑模式：添加图片拖动和缩放功能
-  if (editorMode && avatar.photo) {
+  if (editorMode && hasPhoto) {
     const img = card.querySelector('img');
     if (img) {
       setupImageDrag(img, index);
@@ -597,7 +587,7 @@ function createAvatarCard(avatar, index) {
 
     if (editorMode) {
       // 编辑模式：没有图片时点击上传，有图片时点击不操作（只拖拽）
-      if (!avatar.photo) {
+      if (!hasPhoto) {
         uploadAvatarPhoto(index);
       }
     } else {
