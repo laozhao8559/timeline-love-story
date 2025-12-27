@@ -282,7 +282,8 @@ const avatarData = [
     photo: null,
     position: 'center', // 中间大图
     remark: '', // 备注文字
-    imageOffset: { x: 0, y: 0 } // 图片偏移量（拖动调整）
+    imageOffset: { x: 0, y: 0 }, // 图片偏移量（拖动调整）
+    imageScale: 1 // 图片缩放比例
   },
   {
     id: 'top-left',
@@ -292,7 +293,8 @@ const avatarData = [
     photo: null,
     position: 'top-left', // 左上角
     remark: '',
-    imageOffset: { x: 0, y: 0 }
+    imageOffset: { x: 0, y: 0 },
+    imageScale: 1
   },
   {
     id: 'top-right',
@@ -302,7 +304,8 @@ const avatarData = [
     photo: null,
     position: 'top-right', // 右上角
     remark: '',
-    imageOffset: { x: 0, y: 0 }
+    imageOffset: { x: 0, y: 0 },
+    imageScale: 1
   },
   {
     id: 'bottom-left',
@@ -312,7 +315,8 @@ const avatarData = [
     photo: null,
     position: 'bottom-left', // 左下角
     remark: '',
-    imageOffset: { x: 0, y: 0 }
+    imageOffset: { x: 0, y: 0 },
+    imageScale: 1
   },
   {
     id: 'bottom-right',
@@ -322,13 +326,15 @@ const avatarData = [
     photo: null,
     position: 'bottom-right', // 右下角
     remark: '',
-    imageOffset: { x: 0, y: 0 }
+    imageOffset: { x: 0, y: 0 },
+    imageScale: 1
   }
 ];
 
 const AVATAR_PHOTOS_KEY = 'avatar_photos';
 const AVATAR_REMARKS_KEY = 'avatar_remarks';
 const AVATAR_OFFSETS_KEY = 'avatar_offsets';
+const AVATAR_SCALES_KEY = 'avatar_scales';
 
 /**
  * Initialize proposal page
@@ -369,6 +375,14 @@ function initProposalPage() {
   avatarData.forEach(avatar => {
     if (savedOffsets[avatar.id]) {
       avatar.imageOffset = savedOffsets[avatar.id];
+    }
+  });
+
+  // Load saved image scales
+  const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+  avatarData.forEach(avatar => {
+    if (savedScales[avatar.id]) {
+      avatar.imageScale = savedScales[avatar.id];
     }
   });
 
@@ -454,11 +468,12 @@ function createAvatarCard(avatar, index) {
   // Display photo if available, otherwise emoji
   let avatarContent;
   if (avatar.photo) {
-    // 应用保存的图片偏移量
+    // 应用保存的图片偏移量和缩放
     const offsetX = avatar.imageOffset?.x || 0;
     const offsetY = avatar.imageOffset?.y || 0;
+    const scale = avatar.imageScale || 1;
     avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}"
-      style="transform: translate(${offsetX}px, ${offsetY}px)"
+      style="transform: translate(${offsetX}px, ${offsetY}px) scale(${scale})"
       data-avatar-index="${index}">`;
   } else {
     avatarContent = `<span class="avatar-emoji">${avatar.emoji}</span>`;
@@ -480,25 +495,42 @@ function createAvatarCard(avatar, index) {
     remarkHtml = `<div class="avatar-remark">${escapeHtml(avatar.remark)}</div>`;
   }
 
+  // Scale control (编辑模式，已上传图片时显示)
+  let scaleHtml = '';
+  if (editorMode && avatar.photo) {
+    const currentScale = Math.round((avatar.imageScale || 1) * 100);
+    scaleHtml = `
+      <div class="avatar-scale-control">
+        <input type="range" class="avatar-scale-slider"
+          min="50" max="300" value="${currentScale}"
+          oninput="updateAvatarScale(${index}, this.value)"
+          onchange="saveAvatarScale(${index}, this.value)">
+        <span class="avatar-scale-value">${currentScale}%</span>
+      </div>
+    `;
+  }
+
   card.innerHTML = `
     <div class="avatar-image-wrapper">
       ${avatarContent}
     </div>
     ${nameHtml}
     ${remarkHtml}
+    ${scaleHtml}
   `;
 
-  // 编辑模式：添加图片拖动功能
+  // 编辑模式：添加图片拖动和缩放功能
   if (editorMode && avatar.photo) {
     const img = card.querySelector('img');
     if (img) {
       setupImageDrag(img, index);
+      setupImageZoom(img, index, card);
     }
   }
 
   // Add click handler
   card.addEventListener('click', (e) => {
-    // Don't trigger if clicking on input/textarea in editor mode
+    // Don't trigger if clicking on input/textarea/range in editor mode
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     if (editorMode) {
@@ -521,6 +553,7 @@ function setupImageDrag(img, index) {
   let startX, startY;
   const avatar = avatarData[index];
   const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
+  const currentScale = avatar.imageScale || 1;
 
   img.addEventListener('mousedown', startDrag);
   img.addEventListener('touchstart', startDrag, { passive: false });
@@ -551,9 +584,9 @@ function setupImageDrag(img, index) {
     const newX = clientX - startX;
     const newY = clientY - startY;
 
-    // 更新图片位置
+    // 更新图片位置（同时保持缩放）
     avatar.imageOffset = { x: newX, y: newY };
-    img.style.transform = `translate(${newX}px, ${newY}px)`;
+    updateImageTransform(img, newX, newY, currentScale);
   }
 
   function stopDrag() {
@@ -570,6 +603,135 @@ function setupImageDrag(img, index) {
     document.removeEventListener('touchmove', drag);
     document.removeEventListener('touchend', stopDrag);
   }
+}
+
+/**
+ * 更新图片变换（位置 + 缩放）
+ */
+function updateImageTransform(img, x, y, scale) {
+  img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+}
+
+/**
+ * 实时更新图片缩放
+ */
+function updateAvatarScale(index, scaleValue) {
+  const avatar = avatarData[index];
+  const scale = scaleValue / 100;
+  avatar.imageScale = scale;
+
+  // 更新图片显示
+  const img = document.querySelector(`img[data-avatar-index="${index}"]`);
+  const valueDisplay = document.querySelector(`[data-avatar-index="${index}"] .avatar-scale-value`);
+
+  if (img) {
+    // 动态获取当前的偏移量
+    const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
+    updateImageTransform(img, currentOffset.x, currentOffset.y, scale);
+  }
+
+  if (valueDisplay) {
+    valueDisplay.textContent = `${scaleValue}%`;
+  }
+}
+
+/**
+ * 保存图片缩放比例
+ */
+function saveAvatarScale(index, scaleValue) {
+  const avatar = avatarData[index];
+  const scale = scaleValue / 100;
+  avatar.imageScale = scale;
+
+  // 保存到 localStorage
+  const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+  savedScales[avatar.id] = scale;
+  StorageManager?.save?.(AVATAR_SCALES_KEY, savedScales);
+}
+
+/**
+ * 设置图片滚轮缩放功能（编辑模式）
+ */
+function setupImageZoom(img, index, card) {
+  const avatar = avatarData[index];
+
+  // 滚轮缩放
+  img.addEventListener('wheel', (e) => {
+    if (!editorMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const delta = e.deltaY > 0 ? -0.05 : 0.05; // 向下滚动缩小，向上放大
+    let newScale = avatar.imageScale + delta;
+    newScale = Math.max(0.5, Math.min(3, newScale)); // 限制在 0.5x 到 3x
+
+    avatar.imageScale = newScale;
+
+    // 动态获取当前的偏移量
+    const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
+    updateImageTransform(img, currentOffset.x, currentOffset.y, newScale);
+
+    // 更新滑块和显示值
+    const slider = card.querySelector('.avatar-scale-slider');
+    const valueDisplay = card.querySelector('.avatar-scale-value');
+    if (slider) slider.value = Math.round(newScale * 100);
+    if (valueDisplay) valueDisplay.textContent = `${Math.round(newScale * 100)}%`;
+
+    // 保存缩放
+    const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+    savedScales[avatar.id] = newScale;
+    StorageManager?.save?.(AVATAR_SCALES_KEY, savedScales);
+  }, { passive: false });
+
+  // 双指缩放（触摸设备）
+  let initialPinchDistance = 0;
+  let initialScale = avatar.imageScale || 1;
+
+  img.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      initialPinchDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      initialScale = avatar.imageScale || 1;
+    }
+  }, { passive: false });
+
+  img.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentPinchDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+
+      const scaleRatio = currentPinchDistance / initialPinchDistance;
+      let newScale = initialScale * scaleRatio;
+      newScale = Math.max(0.5, Math.min(3, newScale)); // 限制在 0.5x 到 3x
+
+      avatar.imageScale = newScale;
+
+      // 动态获取当前的偏移量
+      const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
+      updateImageTransform(img, currentOffset.x, currentOffset.y, newScale);
+
+      // 更新滑块和显示值
+      const slider = card.querySelector('.avatar-scale-slider');
+      const valueDisplay = card.querySelector('.avatar-scale-value');
+      if (slider) slider.value = Math.round(newScale * 100);
+      if (valueDisplay) valueDisplay.textContent = `${Math.round(newScale * 100)}%`;
+
+      // 保存缩放
+      const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+      savedScales[avatar.id] = newScale;
+      StorageManager?.save?.(AVATAR_SCALES_KEY, savedScales);
+    }
+  }, { passive: false });
 }
 
 /**
