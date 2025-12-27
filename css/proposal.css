@@ -738,6 +738,11 @@
   margin-top: 30px;
 }
 
+/* Hide upload section in view mode */
+body:not(.editor-mode) .avatar-upload-section {
+  display: none;
+}
+
 .avatar-upload-section h3 {
   text-align: center;
   color: var(--primary-color);
