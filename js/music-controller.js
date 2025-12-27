@@ -278,6 +278,43 @@ function setSceneVolume(scene, duration = 1000) {
 }
 
 /**
+ * 直接设置音量（绕过场景配置，用于精细控制）
+ * @param {number} volume - 目标音量 (0-1)
+ * @param {number} duration - 过渡时长（毫秒）
+ */
+function setVolumeDirect(volume, duration = 1000) {
+  if (!bgMusic) return;
+
+  const targetVol = Math.min(Math.max(volume, 0), 1);
+  const startVolume = bgMusic.volume;
+  const startTime = Date.now();
+
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(`[Music] 直接音量: ${startVolume.toFixed(2)} → ${targetVol.toFixed(2)} (${duration}ms)`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // easeInOut
+    const easedProgress = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    currentVolume = startVolume + (targetVol - startVolume) * easedProgress;
+    bgMusic.volume = currentVolume;
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+  }, 16);
+}
+
+/**
  * 检测"女儿出生"节点并降低音量
  */
 function initDaughterNodeVolumeControl() {
@@ -334,6 +371,7 @@ function updateMusicUI() {
 if (typeof window !== 'undefined') {
   window.toggleMusic = toggleMusic;
   window.setSceneVolume = setSceneVolume;
+  window.setVolumeDirect = setVolumeDirect;
   window.initDaughterNodeVolumeControl = initDaughterNodeVolumeControl;
   window.muteMusic = muteMusic;
   window.unmuteMusic = unmuteMusic;

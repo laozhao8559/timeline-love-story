@@ -347,10 +347,8 @@ function runStage3() {
     backgroundSlideshowInterval = null;
   }
 
-  // 音乐升到终极文字音量
-  if (typeof setSceneVolume === 'function') {
-    setSceneVolume('finalWords', 1500);
-  }
+  // 阶段3开始时不改变音量，保持在40%（从阶段2延续）
+  // 音量将在每句文字显示时精细控制
 
   // 获取文字容器
   const textContainer = document.getElementById('easter-egg-text-container');
@@ -391,6 +389,16 @@ function runStage3() {
       return;
     }
 
+    // ===== 音乐音量精细控制 =====
+    if (index === 1) {
+      // 第二句开始显示时：音量从 40% 升到 55%（0.9秒过渡）
+      if (typeof setVolumeDirect === 'function') {
+        setVolumeDirect(0.55, 900);
+      }
+    }
+    // 第一句（index === 0）：保持 40%，不操作
+    // 第三句的音量提升在打字机完成后处理
+
     const lineEl = document.createElement('div');
     lineEl.className = 'easter-egg-text-line';
     lineEl.classList.add('visible'); // 打字机效果不需要淡入动画
@@ -407,8 +415,13 @@ function runStage3() {
     // 打字机效果逐字显示
     await typeWriter(lineEl, words[index], speed);
 
-    // 如果是第三句（生日快乐，我的爱人。），打字完成后添加跳跃效果
+    // 如果是第三句（生日快乐，我的爱人。），打字完成后添加跳跃效果，并提升音量
     if (index === 2) {
+      // 音量从 55% 升到 65%（1秒过渡）
+      if (typeof setVolumeDirect === 'function') {
+        setVolumeDirect(0.65, 1000);
+      }
+
       // 将文字拆分成单个字的 span
       const text = lineEl.textContent;
       lineEl.textContent = '';
@@ -500,10 +513,8 @@ function handleContinueClick() {
           easterEggOverlay.remove();
           easterEggOverlay = null;
         }
-        // 移除时间轴的虚化效果
-        if (timelineContainer) {
-          timelineContainer.classList.remove('future-node-mode');
-        }
+        // 保持时间轴的虚化效果（不移除 future-node-mode）
+        // 故事还在继续，氛围保持...
       }, 1000);
     }
   }, 2000);

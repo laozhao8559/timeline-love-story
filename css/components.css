@@ -5,7 +5,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 1000;
+  z-index: 10001; /* 高于彩蛋覆盖层(10000)，确保始终可点击 */
 }
 
 .music-toggle {
