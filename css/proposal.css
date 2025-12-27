@@ -112,7 +112,7 @@
   aspect-ratio: 9 / 13; /* 调整比例，更矮一点 */
   max-height: 75vh; /* 增大最大高度 */
   margin: 0 auto;
-  padding-bottom: 110px; /* 给下方控件留空间：名字、按钮、缩放 */
+  padding-bottom: 85px; /* 给下方控件留空间：名字、按钮、缩放 */
 }
 
 /* ========== 中间大图 - 圆形，核心 ========== */
@@ -294,31 +294,31 @@
 /* ========== Avatar Scale Control（缩放控制） ========== */
 .avatar-scale-control {
   position: absolute;
-  bottom: -100px;
+  bottom: -68px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 4px;
-  width: 140%;
-  padding: 3px 6px;
+  gap: 2px;
+  width: 50%;
+  padding: 2px 4px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-sm);
   border: 1px dashed rgba(255, 107, 157, 0.5);
 }
 
 .avatar-card.center .avatar-scale-control {
-  bottom: -115px;
-  width: 170%;
+  bottom: -80px;
+  width: 55%;
 }
 
 .avatar-scale-slider {
   flex: 1;
-  height: 3px;
+  height: 2px;
   -webkit-appearance: none;
   appearance: none;
   background: linear-gradient(to right, var(--primary-light), var(--primary-color));
-  border-radius: 2px;
+  border-radius: 1px;
   outline: none;
   cursor: pointer;
 }
@@ -326,63 +326,63 @@
 .avatar-scale-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   background: var(--primary-color);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .avatar-scale-slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   background: var(--primary-color);
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .avatar-scale-value {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   color: var(--primary-color);
-  min-width: 32px;
+  min-width: 22px;
   text-align: right;
 }
 
 /* ========== Avatar Action Buttons（操作按钮） ========== */
 .avatar-action-buttons {
   position: absolute;
-  bottom: -65px;
+  bottom: -48px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 4px;
-  width: 150%;
+  gap: 2px;
+  width: 55%;
 }
 
 .avatar-card.center .avatar-action-buttons {
-  bottom: -75px;
-  width: 180%;
+  bottom: -55px;
+  width: 60%;
 }
 
 .btn-avatar-action {
   flex: 1;
-  padding: 3px 6px;
-  font-size: 9px;
+  padding: 2px 3px;
+  font-size: 8px;
   font-weight: 500;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 2px;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  height: 24px;
+  gap: 1px;
+  height: 16px;
 }
 
 .btn-avatar-reupload {
@@ -392,7 +392,7 @@
 
 .btn-avatar-reupload:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(255, 107, 157, 0.4);
+  box-shadow: 0 1px 3px rgba(255, 107, 157, 0.3);
 }
 
 .btn-avatar-reupload:active {
@@ -562,7 +562,7 @@
 
   .avatar-grid {
     max-height: 60vh;
-    padding-bottom: 130px; /* 给下方控件留空间 */
+    padding-bottom: 90px; /* 给下方控件留空间 */
   }
 
   .avatar-card .avatar-emoji {
@@ -578,31 +578,31 @@
   }
 
   .avatar-name, .avatar-name-input {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .avatar-card.center .avatar-name, .avatar-card.center .avatar-name-input {
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .avatar-scale-control {
-    width: 160%;
-    bottom: -105px;
+    width: 55%;
+    bottom: -70px;
   }
 
   .avatar-card.center .avatar-scale-control {
-    width: 190%;
-    bottom: -120px;
+    width: 60%;
+    bottom: -82px;
   }
 
   .avatar-action-buttons {
-    bottom: -70px;
-    width: 170%;
+    bottom: -50px;
+    width: 60%;
   }
 
   .avatar-card.center .avatar-action-buttons {
-    bottom: -80px;
-    width: 200%;
+    bottom: -58px;
+    width: 65%;
   }
 }
 
