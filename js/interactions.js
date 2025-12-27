@@ -61,8 +61,8 @@ function createLightbox() {
 }
 
 // ========== Music Player ==========
-let bgMusic = null;
-let isMusicPlaying = false;
+var bgMusic = null;
+var isMusicPlaying = false;
 
 /**
  * Initialize music player
