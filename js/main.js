@@ -340,6 +340,9 @@ const AVATAR_REMARKS_KEY = 'avatar_remarks';
 const AVATAR_OFFSETS_KEY = 'avatar_offsets';
 const AVATAR_SCALES_KEY = 'avatar_scales';
 
+// 将 avatarData 挂载到 window 对象，供导出功能使用
+window.avatarData = avatarData;
+
 /**
  * Initialize proposal page
  */

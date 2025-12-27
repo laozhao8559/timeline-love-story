@@ -1426,17 +1426,51 @@ async function exportStandaloneHTML() {
  * 收集所有需要导出的数据
  */
 async function collectAllDataForExport() {
-  return {
-    timelineData: StorageManager.load(STORAGE_KEYS.TIMELINE_DATA) || cloneTimelineData(),
-    standaloneBlocks: StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS) || [],
-    endingConfig: StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig,
-    musicData: StorageManager.load(STORAGE_KEYS.MUSIC_DATA) || null,
-    avatarPhotos: StorageManager.load('avatar_photos') || {},
-    metadata: {
-      exportDate: new Date().toISOString(),
-      version: '1.1.1'
-    }
-  };
+  try {
+    console.log('[Export] 开始收集数据...');
+
+    // 收集头像完整数据（位置、名字、照片等）
+    const savedPhotos = StorageManager.load('avatar_photos') || {};
+    const savedNames = StorageManager.load('avatar_names') || {};
+    const savedRemarks = StorageManager.load('avatar_remarks') || {};
+    const savedOffsets = StorageManager.load('avatar_offsets') || {};
+    const savedScales = StorageManager.load('avatar_scales') || {};
+    const savedEscapeMessages = StorageManager.load('avatar_escape_messages') || {};
+
+    console.log('[Export] window.avatarData:', window.avatarData);
+
+    // 从 window.avatarData 获取完整结构，然后合并保存的数据
+    const defaultAvatarData = window.avatarData || [];
+    const avatarData = Array.from(defaultAvatarData).map(avatar => ({
+      ...avatar,
+      photo: savedPhotos[avatar.id] || null,
+      name: savedNames[avatar.id] || avatar.name,
+      remark: savedRemarks[avatar.id] || avatar.remark,
+      imageOffset: savedOffsets[avatar.id] || avatar.imageOffset,
+      imageScale: savedScales[avatar.id] || avatar.imageScale,
+      escapeMessage: savedEscapeMessages[avatar.id] || avatar.escapeMessage
+    }));
+
+    console.log('[Export] avatarData 处理完成:', avatarData);
+
+    const result = {
+      timelineData: StorageManager.load(STORAGE_KEYS.TIMELINE_DATA) || cloneTimelineData(),
+      standaloneBlocks: StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS) || [],
+      endingConfig: StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig,
+      musicData: StorageManager.load(STORAGE_KEYS.MUSIC_DATA) || null,
+      avatarData: avatarData,  // 完整的头像数据
+      metadata: {
+        exportDate: new Date().toISOString(),
+        version: '1.1.1'
+      }
+    };
+
+    console.log('[Export] 数据收集完成');
+    return result;
+  } catch (error) {
+    console.error('[Export] 收集数据失败:', error);
+    throw error;
+  }
 }
 
 /**
@@ -1456,7 +1490,7 @@ async function convertBlobsToBase64(data) {
   // 收集所有 blob URL
   collectBlobsFromData(processedData.timelineData, blobs);
   collectBlobsFromStandalone(processedData.standaloneBlocks, blobs);
-  collectBlobsFromAvatars(processedData.avatarPhotos, blobs);
+  collectBlobsFromAvatars(processedData.avatarData, blobs);
 
   if (blobs.length === 0) {
     return processedData;
@@ -1478,7 +1512,7 @@ async function convertBlobsToBase64(data) {
   // 替换所有 blob URL
   replaceBlobsInData(processedData.timelineData, base64Map);
   replaceBlobsInStandalone(processedData.standaloneBlocks, base64Map);
-  replaceBlobsInAvatars(processedData.avatarPhotos, base64Map);
+  replaceBlobsInAvatars(processedData.avatarData, base64Map);
 
   return processedData;
 }
@@ -1509,11 +1543,12 @@ function collectBlobsFromStandalone(blocks, blobs) {
 }
 
 function collectBlobsFromAvatars(avatars, blobs) {
-  for (const [key, src] of Object.entries(avatars)) {
-    if (src && src.startsWith('blob:')) {
-      blobs.push({ src, path: `avatar_${key}` });
+  if (!Array.isArray(avatars)) return;
+  avatars.forEach(avatar => {
+    if (avatar.photo && avatar.photo.startsWith('blob:')) {
+      blobs.push({ src: avatar.photo, path: `avatar_${avatar.id}` });
     }
-  }
+  });
 }
 
 /**
@@ -1557,11 +1592,12 @@ function replaceBlobsInStandalone(blocks, urlToBase64) {
 }
 
 function replaceBlobsInAvatars(avatars, urlToBase64) {
-  for (const key of Object.keys(avatars)) {
-    if (avatars[key] && avatars[key].startsWith('blob:') && urlToBase64[avatars[key]]) {
-      avatars[key] = urlToBase64[avatars[key]];
+  if (!Array.isArray(avatars)) return;
+  avatars.forEach(avatar => {
+    if (avatar.photo && avatar.photo.startsWith('blob:') && urlToBase64[avatar.photo]) {
+      avatar.photo = urlToBase64[avatar.photo];
     }
-  }
+  });
 }
 
 /**
@@ -1597,9 +1633,11 @@ async function estimateTotalSize(data) {
   }
 
   // 估算头像
-  for (const src of Object.values(data.avatarPhotos)) {
-    if (src && src.startsWith('data:')) {
-      totalSize += src.length * 0.75;
+  if (data.avatarData && Array.isArray(data.avatarData)) {
+    for (const avatar of data.avatarData) {
+      if (avatar.photo && avatar.photo.startsWith('data:')) {
+        totalSize += avatar.photo.length * 0.75;
+      }
     }
   }
 
@@ -1758,7 +1796,7 @@ function initScrollAnimations() {
 const TIMELINE_DATA = ${JSON.stringify(data.timelineData)};
 const STANDALONE_BLOCKS = ${JSON.stringify(data.standaloneBlocks)};
 const ENDING_CONFIG = ${JSON.stringify(data.endingConfig)};
-const AVATAR_PHOTOS = ${JSON.stringify(data.avatarPhotos)};
+const AVATAR_DATA = ${JSON.stringify(data.avatarData)};
 ${hasMusic ? `const MUSIC_DATA = ${JSON.stringify(data.musicData)};` : 'const MUSIC_DATA = null;'}
 
 // ========== 工具函数 ==========
@@ -2026,26 +2064,48 @@ function initProposalPage() {
   const grid = document.getElementById('avatar-grid');
   if (!grid) return;
 
-  const avatars = AVATAR_PHOTOS;
-  const correctAnswer = Object.keys(avatars).find(key => key.includes('avatar2'));
+  const avatars = AVATAR_DATA;
+  const correctAnswer = avatars.find(a => a.isMe);
 
-  for (const [key, src] of Object.entries(avatars)) {
+  avatars.forEach(avatar => {
     const card = document.createElement('div');
-    card.className = 'avatar-card';
-    card.innerHTML = '<img src="' + src + '" alt="头像" class="avatar-img">';
 
+    // 添加位置类名
+    const positionClass = avatar.position === 'center' ? 'center' : 'corner ' + avatar.position;
+    card.className = 'avatar-card ' + positionClass;
+    card.dataset.avatarId = avatar.id;
+
+    // 显示图片或 emoji
+    let avatarContent;
+    if (avatar.photo) {
+      // 应用保存的图片偏移量和缩放
+      const offsetX = avatar.imageOffset?.x || 0;
+      const offsetY = avatar.imageOffset?.y || 0;
+      const scale = avatar.imageScale || 1;
+      avatarContent = '<div class="avatar-image-wrapper"><img src="' + avatar.photo + '" alt="' + escapeHtml(avatar.name) + '" style="transform: translate(' + offsetX + 'px, ' + offsetY + 'px) scale(' + scale + ')"></div>';
+    } else {
+      avatarContent = '<div class="avatar-image-wrapper"><span class="avatar-emoji">' + avatar.emoji + '</span></div>';
+    }
+
+    // 名字显示
+    const nameHtml = '<div class="avatar-name">' + escapeHtml(avatar.name) + '</div>';
+
+    card.innerHTML = avatarContent + nameHtml;
+
+    // 点击事件
     card.addEventListener('click', () => {
-      if (key === correctAnswer) {
+      if (avatar.isMe) {
         showSuccess();
         setTimeout(() => transitionToPage('timeline'), 2000);
       } else {
+        // 错误选择：抖动动画
         card.style.animation = 'shake 0.5s';
         setTimeout(() => card.style.animation = '', 500);
       }
     });
 
     grid.appendChild(card);
-  }
+  });
 }
 
 function showSuccess() {
