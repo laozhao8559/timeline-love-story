@@ -2,170 +2,92 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="我们的爱情故事 - 从相识到现在，每一个瞬间都值得珍藏">
-  <meta name="theme-color" content="#FF6B9D">
-
-  <!-- Open Graph for sharing -->
-  <meta property="og:title" content="我们的爱情故事">
-  <meta property="og:description" content="从相识到现在，每一个瞬间都值得珍藏">
-  <meta property="og:type" content="website">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>我们的故事</title>
-
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/main.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+    p {
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 15px;
+    }
+    .heart {
+      font-size: 50px;
+      margin-bottom: 20px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    .info-box {
+      background: #f0f0f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .info-box h3 {
+      color: #764ba2;
+      margin-bottom: 10px;
+    }
+    .info-box code {
+      background: #e0e0e0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .note {
+      color: #999;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-  <!-- ========== Global Editor Toggle (Always Visible) ========== -->
-  <div class="editor-mode-toggle">
-    <button class="btn-editor-toggle" onclick="toggleEditorMode()">
-      进入编辑
-    </button>
+  <div class="container">
+    <div class="heart">❤</div>
+    <h1>我们的爱情故事</h1>
+    <p>页面正在准备中...</p>
+    <p>如果你是访客，请稍后再访问。</p>
+
+    <div class="info-box">
+      <h3>📝 编辑者说明</h3>
+      <p>这是导出版本的占位页面。</p>
+      <p>要更新内容：</p>
+      <p>1. 打开 <code>editor.html</code> 编辑</p>
+      <p>2. 导出完整 HTML</p>
+      <p>3. 用导出的文件覆盖 <code>index.html</code></p>
+      <p>4. 推送到 GitHub</p>
+    </div>
+
+    <p class="note">GitHub Pages 部署 | 腾讯云 CDN 加速</p>
   </div>
-
-  <!-- ========== Editor Navigation Bar (Editor Mode Only) ========== -->
-  <div class="editor-nav-bar" id="editor-nav-bar">
-    <button class="editor-nav-btn" onclick="editorGoToPage('choice')" title="选择页">
-      <span>📝</span> 选择页
-    </button>
-    <button class="editor-nav-btn" onclick="editorGoToPage('proposal')" title="求婚页">
-      <span>💕</span> 求婚页
-    </button>
-    <button class="editor-nav-btn" onclick="editorGoToPage('timeline')" title="时间轴页">
-      <span>📖</span> 时间轴页
-    </button>
-  </div>
-
-  <!-- ========== Loading Page ========== -->
-  <div id="loading-page" class="page active">
-    <div class="loading-content">
-      <div class="heart-pulse">❤</div>
-      <p class="loading-text">正在准备惊喜...</p>
-      <div class="loading-bar">
-        <div class="loading-progress"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== Choice Page ========== -->
-  <div id="choice-page" class="page hidden">
-    <div class="choice-container">
-      <h2 class="choice-title">我有一个问题想问你...</h2>
-      <p class="choice-subtitle">你愿意看看我们的故事吗？</p>
-
-      <div class="choice-buttons">
-        <button id="btn-yes" class="btn-choice btn-primary">
-          <span class="btn-icon">❤</span>
-          愿意
-        </button>
-        <button id="btn-no" class="btn-choice btn-secondary">
-          再想想
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== Proposal Choice Page ========== -->
-  <div id="proposal-page" class="page hidden">
-    <div class="proposal-container">
-      <h2 class="proposal-title" data-text="👉「假如下面几个人同时向你求婚，你会选择嫁给谁？」">
-        <span class="title-line title-left">👉「假如下面几个人同时向你求婚，</span>
-        <span class="title-line title-right">你会选择嫁给谁？」</span>
-      </h2>
-
-      <div class="avatar-grid" id="avatar-grid">
-        <!-- Avatars will be dynamically generated -->
-      </div>
-    </div>
-
-    <!-- Success Overlay -->
-    <div class="success-overlay" id="success-overlay">
-      <div class="success-content">
-        <div class="success-icon">💕</div>
-        <p class="success-message" id="success-message"></p>
-      </div>
-    </div>
-
-    <!-- Confetti Container -->
-    <div class="confetti-container" id="confetti-container"></div>
-  </div>
-
-  <!-- ========== Timeline Page ========== -->
-  <div id="timeline-page" class="page hidden">
-    <!-- Music Controller -->
-    <div id="music-controller" class="music-controller">
-      <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
-        <span class="music-icon">🎵</span>
-      </button>
-    </div>
-
-    <!-- Timeline Container -->
-    <div class="timeline-container">
-      <header class="timeline-header">
-        <h1>我们的故事</h1>
-        <p class="timeline-subtitle">从2021到2025，一路有你</p>
-      </header>
-
-      <!-- Music Upload Section (Editor Mode) -->
-      <section class="music-upload-section">
-        <h3>🎵 背景音乐</h3>
-        <div class="music-current">
-          <div class="music-current-info">
-            <div class="music-current-name">未上传音乐</div>
-            <div class="music-current-size">-</div>
-          </div>
-        </div>
-        <button class="btn-music-upload" id="btn-upload-music">
-          <span>📤</span> 上传音乐文件
-        </button>
-      </section>
-
-      <main class="timeline">
-        <div class="timeline-line"></div>
-        <div id="timeline-nodes" class="timeline-nodes">
-          <!-- Timeline nodes will be dynamically generated -->
-        </div>
-      </main>
-
-      <footer class="timeline-footer">
-        <p>💕 爱你每一天 💕</p>
-      </footer>
-    </div>
-
-    <!-- Editor Toolbar -->
-    <div class="editor-toolbar">
-      <div class="editor-toolbar-section">
-        <span class="storage-indicator">存储: 0 B / ~5MB</span>
-      </div>
-      <div class="editor-toolbar-divider"></div>
-      <div class="editor-toolbar-section">
-        <button class="btn-toolbar btn-toolbar-success" id="btn-export-html">
-          <span>📄</span> <span class="toolbar-label">导出HTML</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-primary" id="btn-export">
-          <span>📥</span> <span class="toolbar-label">导出数据</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-import">
-          <span>📤</span> <span class="toolbar-label">导入数据</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-clear">
-          <span>🗑️</span> <span class="toolbar-label">清除</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-reset">
-          <span>🔄</span> <span class="toolbar-label">重置</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- JavaScript -->
-  <script src="js/indexeddb-storage.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/timeline.js"></script>
-  <script src="js/interactions.js"></script>
-  <script src="js/observer.js"></script>
-  <script src="js/editor.js"></script>
-  <script src="js/main.js"></script>
 </body>
 </html>
