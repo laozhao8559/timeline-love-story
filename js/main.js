@@ -552,8 +552,6 @@ function setupImageDrag(img, index) {
   let isDragging = false;
   let startX, startY;
   const avatar = avatarData[index];
-  const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
-  const currentScale = avatar.imageScale || 1;
 
   img.addEventListener('mousedown', startDrag);
   img.addEventListener('touchstart', startDrag, { passive: false });
@@ -563,6 +561,7 @@ function setupImageDrag(img, index) {
     e.stopPropagation();
 
     isDragging = true;
+    const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
     const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
     startX = clientX - currentOffset.x;
@@ -584,8 +583,9 @@ function setupImageDrag(img, index) {
     const newX = clientX - startX;
     const newY = clientY - startY;
 
-    // 更新图片位置（同时保持缩放）
+    // 更新图片位置（动态获取当前缩放）
     avatar.imageOffset = { x: newX, y: newY };
+    const currentScale = avatar.imageScale || 1;
     updateImageTransform(img, newX, newY, currentScale);
   }
 
