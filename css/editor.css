@@ -386,6 +386,12 @@ body.editor-mode .editor-toolbar {
   box-shadow: var(--shadow-sm);
 }
 
+.btn-toolbar-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
 .btn-toolbar-secondary {
   background: var(--bg-body);
   color: var(--text-primary);

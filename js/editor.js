@@ -1241,3 +1241,797 @@ function initEditor() {
   const savedMusic = loadSavedMusic();
   return savedMusic;
 }
+
+// ========== Export Standalone HTML ==========
+/**
+ * 导出为独立HTML文件
+ * 所有资源内嵌，移除编辑功能，生成只读阅读模式
+ */
+async function exportStandaloneHTML() {
+  try {
+    showToast('正在生成HTML文件...', 'info');
+
+    // 1. 收集所有数据
+    const exportData = await collectAllDataForExport();
+
+    // 2. 检查文件大小
+    const sizeCheck = await estimateTotalSize(exportData);
+    if (!sizeCheck.canExport) {
+      showToast(sizeCheck.message, 'error');
+      return;
+    }
+    showToast(sizeCheck.message, 'info');
+
+    // 3. 转换所有 blob URL 为 base64
+    showToast('正在处理图片和视频...', 'info');
+    const processedData = await convertBlobsToBase64(exportData);
+
+    // 4. 合并所有 CSS 文件
+    showToast('正在合并样式文件...', 'info');
+    const combinedCSS = await combineCSSFiles();
+
+    // 5. 生成精简的 JS
+    showToast('正在生成脚本...', 'info');
+    const standaloneJS = await generateStandaloneJS(processedData);
+
+    // 6. 生成 HTML 结构
+    showToast('正在组装HTML...', 'info');
+    const htmlContent = generateHTML(processedData, combinedCSS, standaloneJS);
+
+    // 7. 下载文件
+    downloadHTML(htmlContent);
+
+    showToast('HTML文件生成成功！', 'success');
+  } catch (error) {
+    console.error('Export error:', error);
+    showToast('生成失败：' + error.message, 'error');
+  }
+}
+
+/**
+ * 收集所有需要导出的数据
+ */
+async function collectAllDataForExport() {
+  return {
+    timelineData: StorageManager.load(STORAGE_KEYS.TIMELINE_DATA) || cloneTimelineData(),
+    standaloneBlocks: StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS) || [],
+    endingConfig: StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig,
+    musicData: StorageManager.load(STORAGE_KEYS.MUSIC_DATA) || null,
+    avatarPhotos: StorageManager.load('avatar_photos') || {},
+    metadata: {
+      exportDate: new Date().toISOString(),
+      version: '1.1.1'
+    }
+  };
+}
+
+/**
+ * 深拷贝默认时间轴数据
+ */
+function cloneTimelineData() {
+  return JSON.parse(JSON.stringify(window.timelineData || []));
+}
+
+/**
+ * 递归转换所有 blob URL 为 base64
+ */
+async function convertBlobsToBase64(data) {
+  const processedData = JSON.parse(JSON.stringify(data));
+  const blobs = [];
+
+  // 收集所有 blob URL
+  collectBlobsFromData(processedData.timelineData, blobs);
+  collectBlobsFromStandalone(processedData.standaloneBlocks, blobs);
+  collectBlobsFromAvatars(processedData.avatarPhotos, blobs);
+
+  if (blobs.length === 0) {
+    return processedData;
+  }
+
+  // 并发转换
+  showToast(`正在转换 ${blobs.length} 个文件...`, 'info');
+  const base64Map = {};
+  for (let i = 0; i < blobs.length; i++) {
+    const blob = blobs[i];
+    try {
+      base64Map[blob.src] = await convertSingleBlob(blob.src);
+      showToast(`转换进度: ${i + 1}/${blobs.length}`, 'info');
+    } catch (e) {
+      console.error('转换失败:', blob.src, e);
+    }
+  }
+
+  // 替换所有 blob URL
+  replaceBlobsInData(processedData.timelineData, base64Map);
+  replaceBlobsInStandalone(processedData.standaloneBlocks, base64Map);
+  replaceBlobsInAvatars(processedData.avatarPhotos, base64Map);
+
+  return processedData;
+}
+
+/**
+ * 收集数据中的所有 blob URL
+ */
+function collectBlobsFromData(nodes, blobs) {
+  nodes.forEach(node => {
+    if (node.contents) {
+      node.contents.forEach((content, idx) => {
+        if ((content.type === 'image' || content.type === 'video') &&
+            content.src && content.src.startsWith('blob:')) {
+          blobs.push({ src: content.src, path: `node_${node.id}_${idx}` });
+        }
+      });
+    }
+  });
+}
+
+function collectBlobsFromStandalone(blocks, blobs) {
+  blocks.forEach(block => {
+    if ((block.type === 'image' || block.type === 'video') &&
+        block.src && block.src.startsWith('blob:')) {
+      blobs.push({ src: block.src, path: `standalone_${block.id}` });
+    }
+  });
+}
+
+function collectBlobsFromAvatars(avatars, blobs) {
+  for (const [key, src] of Object.entries(avatars)) {
+    if (src && src.startsWith('blob:')) {
+      blobs.push({ src, path: `avatar_${key}` });
+    }
+  }
+}
+
+/**
+ * 转换单个 blob 为 base64
+ */
+async function convertSingleBlob(blobUrl) {
+  const response = await fetch(blobUrl);
+  if (!response.ok) throw new Error('Failed to fetch blob');
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * 替换数据中的 blob URL
+ */
+function replaceBlobsInData(nodes, urlToBase64) {
+  nodes.forEach(node => {
+    if (node.contents) {
+      node.contents.forEach(content => {
+        if ((content.type === 'image' || content.type === 'video') &&
+            content.src && content.src.startsWith('blob:') && urlToBase64[content.src]) {
+          content.src = urlToBase64[content.src];
+        }
+      });
+    }
+  });
+}
+
+function replaceBlobsInStandalone(blocks, urlToBase64) {
+  blocks.forEach(block => {
+    if ((block.type === 'image' || block.type === 'video') &&
+        block.src && block.src.startsWith('blob:') && urlToBase64[block.src]) {
+      block.src = urlToBase64[block.src];
+    }
+  });
+}
+
+function replaceBlobsInAvatars(avatars, urlToBase64) {
+  for (const key of Object.keys(avatars)) {
+    if (avatars[key] && avatars[key].startsWith('blob:') && urlToBase64[avatars[key]]) {
+      avatars[key] = urlToBase64[avatars[key]];
+    }
+  }
+}
+
+/**
+ * 估算总文件大小
+ */
+async function estimateTotalSize(data) {
+  let totalSize = 0;
+
+  // 估算图片和视频
+  const estimateContents = (contents) => {
+    if (!contents) return 0;
+    return contents.reduce((sum, content) => {
+      if (content.src && content.src.startsWith('data:')) {
+        return sum + content.src.length * 0.75;
+      }
+      return sum;
+    }, 0);
+  };
+
+  data.timelineData.forEach(node => {
+    totalSize += estimateContents(node.contents);
+  });
+
+  data.standaloneBlocks.forEach(block => {
+    if (block.src && block.src.startsWith('data:')) {
+      totalSize += block.src.length * 0.75;
+    }
+  });
+
+  // 估算音乐
+  if (data.musicData?.data) {
+    totalSize += data.musicData.data.length * 0.75;
+  }
+
+  // 估算头像
+  for (const src of Object.values(data.avatarPhotos)) {
+    if (src && src.startsWith('data:')) {
+      totalSize += src.length * 0.75;
+    }
+  }
+
+  const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+
+  if (totalSize > 100 * 1024 * 1024) {
+    return {
+      canExport: false,
+      message: `总大小约 ${sizeMB}MB，超过100MB限制，请删除一些视频或图片`
+    };
+  }
+
+  return {
+    canExport: true,
+    size: sizeMB,
+    message: `预计文件大小：约 ${sizeMB}MB`
+  };
+}
+
+/**
+ * 合并所有 CSS 文件
+ * 从已加载的样式表中读取，兼容 file:// 协议
+ */
+async function combineCSSFiles() {
+  try {
+    // 尝试从 document.styleSheets 读取已加载的 CSS
+    const cssContents = [];
+
+    for (const sheet of document.styleSheets) {
+      try {
+        if (sheet.cssRules) {
+          let rules = '';
+          for (let i = 0; i < sheet.cssRules.length; i++) {
+            rules += sheet.cssRules[i].cssText + '\n';
+          }
+          cssContents.push(rules);
+        }
+      } catch (e) {
+        // 跨域样式表无法读取，尝试其他方法
+        console.warn('无法读取样式表:', sheet.href, e);
+      }
+    }
+
+    if (cssContents.length > 0) {
+      return cssContents.join('\n\n');
+    }
+
+    // 如果无法从样式表读取，尝试 fetch（需要通过 HTTP 服务器访问）
+    const cssFiles = [
+      'css/normalize.css',
+      'css/variables.css',
+      'css/layout.css',
+      'css/components.css',
+      'css/animations.css',
+      'css/proposal.css'
+    ];
+
+    const cssPromises = cssFiles.map(file => fetchCSSFile(file).catch(err => {
+      console.warn(`无法加载 ${file}:`, err);
+      return `/* ${file} - 加载失败 */\n`;
+    }));
+    const cssResults = await Promise.all(cssPromises);
+    return cssResults.join('\n\n');
+  } catch (error) {
+    console.error('CSS 合并失败:', error);
+    throw new Error('无法加载样式文件，请通过 HTTP 服务器访问页面（如使用 Live Server）');
+  }
+}
+
+/**
+ * 获取单个 CSS 文件内容
+ */
+async function fetchCSSFile(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Failed to load ${path}`);
+  return await response.text();
+}
+
+/**
+ * 生成精简的只读模式 JS
+ */
+async function generateStandaloneJS(data) {
+  // 滚动动画代码（直接内嵌，无需 fetch）
+  const observerCode = `
+let scrollObserver = null;
+
+function initScrollAnimations() {
+  if (!scrollObserver) {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    };
+
+    scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+          if (entry.target.classList.contains('standalone-block')) {
+            entry.target.classList.add('visible');
+          }
+
+          const contentBlocks = entry.target.querySelectorAll('.timeline-text-block, .timeline-image, .video-wrapper');
+          contentBlocks.forEach((block, index) => {
+            setTimeout(() => {
+              block.classList.add('visible');
+            }, index * 150);
+          });
+        }
+      });
+    }, observerOptions);
+  }
+
+  const nodes = document.querySelectorAll('.timeline-node, .standalone-block, .timeline-ending');
+  nodes.forEach(node => {
+    scrollObserver.observe(node);
+  });
+}`;
+
+  const hasMusic = data.musicData && data.musicData.data;
+
+  // 生成内嵌数据
+  return `
+// ========== 内嵌数据 ==========
+const TIMELINE_DATA = ${JSON.stringify(data.timelineData)};
+const STANDALONE_BLOCKS = ${JSON.stringify(data.standaloneBlocks)};
+const ENDING_CONFIG = ${JSON.stringify(data.endingConfig)};
+const AVATAR_PHOTOS = ${JSON.stringify(data.avatarPhotos)};
+${hasMusic ? `const MUSIC_DATA = ${JSON.stringify(data.musicData)};` : 'const MUSIC_DATA = null;'}
+
+// ========== 工具函数 ==========
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========== 时间轴渲染 ==========
+function createTimelineNode(node, index) {
+  const article = document.createElement('article');
+  article.className = 'timeline-node' + (node.isHighlight ? ' highlight' : '');
+  article.dataset.nodeId = node.id;
+  article.dataset.index = index;
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'timeline-date';
+  dateEl.textContent = node.date;
+
+  const contentEl = document.createElement('div');
+  contentEl.className = 'timeline-content';
+
+  if (node.title) {
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'timeline-title';
+    titleEl.textContent = node.title;
+    contentEl.appendChild(titleEl);
+  }
+
+  if (node.contents && node.contents.length > 0) {
+    node.contents.forEach((contentBlock, contentIndex) => {
+      const blockEl = createContentBlock(contentBlock, node.id, contentIndex);
+      if (blockEl) {
+        contentEl.appendChild(blockEl);
+      }
+    });
+  }
+
+  article.appendChild(dateEl);
+  article.appendChild(contentEl);
+  return article;
+}
+
+function createContentBlock(contentBlock, nodeId, contentIndex) {
+  const animations = ['animate-fadeIn', 'animate-slideUp', 'animate-slideDown',
+                      'animate-slideInLeft', 'animate-slideInRight', 'animate-zoomIn',
+                      'animate-rotateIn', 'animate-bounceIn', 'animate-flipInX'];
+  const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+
+  if (contentBlock.type === 'text') {
+    const textEl = document.createElement('p');
+    textEl.className = 'timeline-text-block';
+    textEl.textContent = contentBlock.content;
+    textEl.classList.add(randomAnimation);
+    textEl.dataset.animate = randomAnimation;
+    textEl.dataset.blockIndex = contentIndex;
+    return textEl;
+  } else if (contentBlock.type === 'image') {
+    const img = document.createElement('img');
+    img.src = contentBlock.src;
+    img.alt = contentBlock.alt || '';
+    img.className = 'timeline-image';
+    img.addEventListener('click', () => openLightbox(contentBlock.src, contentBlock.alt));
+    img.classList.add(randomAnimation);
+    img.dataset.animate = randomAnimation;
+    img.dataset.blockIndex = contentIndex;
+    return img;
+  } else if (contentBlock.type === 'video') {
+    const videoEl = createVideoElement(contentBlock);
+    videoEl.classList.add(randomAnimation);
+    videoEl.dataset.animate = randomAnimation;
+    videoEl.dataset.blockIndex = contentIndex;
+    return videoEl;
+  }
+  return null;
+}
+
+function createVideoElement(media) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'video-wrapper';
+
+  const video = document.createElement('video');
+  video.src = media.src;
+  video.poster = media.poster || '';
+  video.className = 'timeline-video';
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  video.setAttribute('x5-video-player-type', 'h5');
+  video.setAttribute('x5-video-player-fullscreen', 'false');
+  video.controls = false;
+
+  const playOverlay = document.createElement('div');
+  playOverlay.className = 'video-play-overlay';
+  playOverlay.innerHTML = '<span class="play-icon">▶</span>';
+
+  const playHandler = () => {
+    video.play();
+    playOverlay.style.display = 'none';
+    video.controls = true;
+  };
+
+  playOverlay.addEventListener('click', playHandler);
+  video.addEventListener('click', () => {
+    if (video.paused) {
+      playHandler();
+    } else {
+      video.pause();
+      playOverlay.style.display = 'flex';
+      video.controls = false;
+    }
+  });
+  video.addEventListener('ended', () => {
+    playOverlay.style.display = 'flex';
+    video.controls = false;
+  });
+
+  wrapper.appendChild(video);
+  wrapper.appendChild(playOverlay);
+  return wrapper;
+}
+
+function createStandaloneBlock(block) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'standalone-block';
+  wrapper.dataset.blockId = block.id;
+
+  if (block.type === 'text') {
+    wrapper.innerHTML = '<div class="standalone-text">' + escapeHtml(block.content) + '</div>';
+  } else if (block.type === 'image') {
+    wrapper.innerHTML = '<div class="standalone-media"><img src="' + block.src +
+      '" alt="' + escapeHtml(block.alt || '') + '" class="standalone-image">' +
+      (block.caption ? '<p class="standalone-caption">' + escapeHtml(block.caption) + '</p>' : '') +
+      '</div>';
+    wrapper.querySelector('img').addEventListener('click', () => openLightbox(block.src, block.alt));
+  } else if (block.type === 'video') {
+    const videoWrapper = createVideoElement(block);
+    wrapper.appendChild(videoWrapper);
+  }
+  return wrapper;
+}
+
+function createTimelineEnding() {
+  const ending = document.createElement('section');
+  ending.className = 'timeline-ending';
+  ending.innerHTML = '<div class="ending-content">' +
+    '<div class="ending-icon">💕</div>' +
+    '<h2 class="ending-message">' + escapeHtml(ENDING_CONFIG.message) + '</h2>' +
+    '<div class="ending-signature">' +
+    '<p>' + escapeHtml(ENDING_CONFIG.signature) + '</p>' +
+    '<p class="ending-name">' + escapeHtml(ENDING_CONFIG.name) + '</p>' +
+    '<p class="ending-date">' + escapeHtml(ENDING_CONFIG.date) + '</p>' +
+    '<div class="ending-hearts"><span>❤</span><span>❤</span><span>❤</span></div>' +
+    '</div></div>';
+  return ending;
+}
+
+function initTimeline() {
+  const container = document.getElementById('timeline-nodes');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const headBlocks = STANDALONE_BLOCKS.filter(b => b.insertAfter === -1);
+  headBlocks.forEach(block => {
+    container.appendChild(createStandaloneBlock(block));
+  });
+
+  TIMELINE_DATA.forEach((node, index) => {
+    container.appendChild(createTimelineNode(node, index));
+    const afterBlocks = STANDALONE_BLOCKS.filter(b => b.insertAfter === index);
+    afterBlocks.forEach(block => {
+      container.appendChild(createStandaloneBlock(block));
+    });
+  });
+
+  container.appendChild(createTimelineEnding());
+  initScrollAnimations();
+}
+
+// ========== Lightbox ==========
+function openLightbox(src, alt) {
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxCaption = document.getElementById('lightbox-caption');
+  lightboxImg.src = src;
+  lightboxCaption.textContent = alt || '';
+  lightbox.classList.add('active');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'lightbox') closeLightbox();
+  if (e.target.classList.contains('lightbox-close')) closeLightbox();
+});
+
+// ========== 音乐播放器 ==========
+let bgMusic = null;
+let isMusicPlaying = false;
+
+function initMusicController() {
+  ${hasMusic ? `
+  bgMusic = document.getElementById('bg-music');
+  if (!bgMusic) return;
+  bgMusic.volume = 0.35;
+  ` : 'return;'}
+
+  const toggleBtn = document.getElementById('music-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', toggleMusic);
+  }
+}
+
+function toggleMusic() {
+  if (!bgMusic) return;
+  if (isMusicPlaying) {
+    bgMusic.pause();
+  } else {
+    bgMusic.play();
+  }
+  isMusicPlaying = !isMusicPlaying;
+  const icon = document.querySelector('.music-icon');
+  if (icon) {
+    icon.textContent = isMusicPlaying ? '🔊' : '🎵';
+  }
+}
+
+// ========== 滚动动画 ==========
+${observerCode}
+
+// ========== 页面导航 ==========
+function transitionToPage(pageKey) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+
+  const targetPage = document.getElementById(pageKey + '-page');
+  if (targetPage) {
+    targetPage.classList.remove('hidden');
+    setTimeout(() => targetPage.classList.add('active'), 50);
+  }
+}
+
+function initChoiceButtons() {
+  const btnYes = document.getElementById('btn-yes');
+  const btnNo = document.getElementById('btn-no');
+
+  if (btnYes) {
+    btnYes.addEventListener('click', () => transitionToPage('proposal'));
+  }
+
+  if (btnNo) {
+    btnNo.addEventListener('click', (e) => {
+      const rect = btnNo.getBoundingClientRect();
+      const newX = e.clientX - rect.left - rect.width / 2;
+      const newY = e.clientY - rect.top - rect.height / 2;
+      btnNo.style.transform = 'translate(' + newX + 'px, ' + newY + 'px)';
+    });
+  }
+}
+
+// ========== 求婚页 ==========
+function initProposalPage() {
+  const grid = document.getElementById('avatar-grid');
+  if (!grid) return;
+
+  const avatars = AVATAR_PHOTOS;
+  const correctAnswer = Object.keys(avatars).find(key => key.includes('avatar2'));
+
+  for (const [key, src] of Object.entries(avatars)) {
+    const card = document.createElement('div');
+    card.className = 'avatar-card';
+    card.innerHTML = '<img src="' + src + '" alt="头像" class="avatar-img">';
+
+    card.addEventListener('click', () => {
+      if (key === correctAnswer) {
+        showSuccess();
+        setTimeout(() => transitionToPage('timeline'), 2000);
+      } else {
+        card.style.animation = 'shake 0.5s';
+        setTimeout(() => card.style.animation = '', 500);
+      }
+    });
+
+    grid.appendChild(card);
+  }
+}
+
+function showSuccess() {
+  const overlay = document.getElementById('success-overlay');
+  if (overlay) {
+    overlay.classList.add('show');
+  }
+}
+
+// ========== 初始化 ==========
+function init() {
+  initProposalPage();
+  initChoiceButtons();
+  initMusicController();
+  initTimeline();
+
+  setTimeout(() => {
+    transitionToPage('choice');
+  }, 1500);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+  `.trim();
+}
+
+/**
+ * 读取文本文件
+ */
+async function fetchTextFile(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Failed to load ${path}`);
+  return await response.text();
+}
+
+/**
+ * 生成完整的 HTML 文档
+ */
+function generateHTML(data, css, js) {
+  const hasMusic = data.musicData && data.musicData.data;
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="我们的爱情故事">
+  <meta name="theme-color" content="#FF6B9D">
+  <title>我们的故事</title>
+  <style>
+${css}
+  </style>
+</head>
+<body>
+  <!-- Loading Page -->
+  <div id="loading-page" class="page active">
+    <div class="loading-content">
+      <div class="heart-pulse">❤</div>
+      <p class="loading-text">正在准备惊喜...</p>
+      <div class="loading-bar"><div class="loading-progress"></div></div>
+    </div>
+  </div>
+
+  <!-- Choice Page -->
+  <div id="choice-page" class="page hidden">
+    <div class="choice-container">
+      <h2 class="choice-title">我有一个问题想问你...</h2>
+      <p class="choice-subtitle">你愿意看看我们的故事吗？</p>
+      <div class="choice-buttons">
+        <button id="btn-yes" class="btn-choice btn-primary">
+          <span class="btn-icon">❤</span> 愿意
+        </button>
+        <button id="btn-no" class="btn-choice btn-secondary">再想想</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proposal Page -->
+  <div id="proposal-page" class="page hidden">
+    <div class="proposal-container">
+      <h2 class="proposal-title">
+        👉「假如下面几个人同时向你求婚，<br>你会选择嫁给谁？」
+      </h2>
+      <div class="avatar-grid" id="avatar-grid"></div>
+    </div>
+    <div class="success-overlay" id="success-overlay">
+      <div class="success-content">
+        <div class="success-icon">💕</div>
+        <p class="success-message">我就知道你会选我！</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Page -->
+  <div id="timeline-page" class="page hidden">
+    ${hasMusic ? `
+    <div id="music-controller" class="music-controller">
+      <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
+        <span class="music-icon">🎵</span>
+      </button>
+    </div>` : ''}
+
+    <div class="timeline-container">
+      <header class="timeline-header">
+        <h1>我们的故事</h1>
+        <p class="timeline-subtitle">一路有你</p>
+      </header>
+
+      <main class="timeline">
+        <div class="timeline-line"></div>
+        <div id="timeline-nodes" class="timeline-nodes"></div>
+      </main>
+
+      <footer class="timeline-footer">
+        <p>💕 爱你每一天 💕</p>
+      </footer>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox">
+      <span class="lightbox-close">&times;</span>
+      <img class="lightbox-content" id="lightbox-img">
+      <p class="lightbox-caption" id="lightbox-caption"></p>
+    </div>
+  </div>
+
+  ${hasMusic ? `<audio id="bg-music" src="${data.musicData.data}" loop></audio>` : ''}
+
+  <script>
+${js}
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * 下载 HTML 文件
+ */
+function downloadHTML(htmlContent) {
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `我们的故事-${new Date().toISOString().slice(0, 10)}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}

@@ -191,6 +191,16 @@ function init() {
  * Initialize toolbar buttons
  */
 function initToolbarButtons() {
+  // Export HTML button
+  const exportHTMLBtn = document.getElementById('btn-export-html');
+  if (exportHTMLBtn) {
+    exportHTMLBtn.addEventListener('click', () => {
+      if (typeof exportStandaloneHTML === 'function') {
+        exportStandaloneHTML();
+      }
+    });
+  }
+
   // Export button
   const exportBtn = document.getElementById('btn-export');
   if (exportBtn) {
