@@ -367,7 +367,7 @@ body.easter-egg-dim::before {
 /* 阶段1：手写体文字 */
 .easter-egg-overlay.stage-1 .easter-egg-message {
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(1.5rem, 5vw, 3rem);
+  font-size: clamp(2rem, 6vw, 4rem);
   color: #FFD700;
   text-align: center;
   text-shadow:
@@ -437,7 +437,7 @@ body.easter-egg-dim::before {
 
 .flashback-text {
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   color: #FFE4B5;
   text-align: center;
   max-width: 80%;
@@ -462,7 +462,7 @@ body.easter-egg-dim::before {
 
 .final-word-line {
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-size: clamp(1.7rem, 4vw, 3rem);
   color: #FFD700;
   text-align: center;
   text-shadow:
@@ -474,7 +474,7 @@ body.easter-egg-dim::before {
 }
 
 #final-line-2 {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   color: #FF6B9D;
   margin-top: 1rem;
   text-shadow:

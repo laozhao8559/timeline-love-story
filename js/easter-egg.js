@@ -38,7 +38,6 @@ const EASTER_EGG_CONFIG = {
 let easterEggTriggered = false;
 let easterEggTimer = null;
 let lastNodeStayTimer = null;
-let originalMusicVolume = 0.35;
 
 /**
  * 初始化彩蛋检测
@@ -132,10 +131,9 @@ function runStage1_CalmDown() {
     timelineContainer.classList.add('easter-egg-scale');
   }
 
-  // 3. 降低音乐音量
-  if (typeof bgMusic !== 'undefined' && bgMusic) {
-    originalMusicVolume = bgMusic.volume;
-    bgMusic.volume = originalMusicVolume * 0.4;
+  // 3. 音乐降至彩蛋开始音量 (40%)
+  if (typeof setSceneVolume === 'function') {
+    setSceneVolume('easterEggStart', 1500);
   }
 
   // 4. 显示"故事还没有结束"
@@ -274,9 +272,9 @@ function runTextFlashback() {
 function runStage3_FinalWords() {
   console.log('[EasterEgg] 阶段3：终极文字');
 
-  // 音乐轻微抬升
-  if (typeof bgMusic !== 'undefined' && bgMusic) {
-    bgMusic.volume = Math.min(originalMusicVolume * 0.7, 1.0);
+  // 音乐升至终极文字音量 (65%) - 最重要时刻
+  if (typeof setSceneVolume === 'function') {
+    setSceneVolume('finalWords', 1500);
   }
 
   const overlay = document.createElement('div');
@@ -363,9 +361,9 @@ function handleContinueClick(overlay, button) {
     timelineContainer.classList.remove('easter-egg-scale');
   }
 
-  // 2. 恢复音乐音量
-  if (typeof bgMusic !== 'undefined' && bgMusic) {
-    bgMusic.volume = originalMusicVolume;
+  // 2. 恢复音乐到彩蛋结束音量 (45%)
+  if (typeof setSceneVolume === 'function') {
+    setSceneVolume('easterEggEnd', 1500);
   }
 
   // 3. 移除彩蛋覆盖层

@@ -120,34 +120,22 @@ function handlePageInit(pageKey) {
  * Initialize music with editor support
  * - Does NOT autoplay
  * - Waits for user to click the music button
- * - Volume set to 0.35
+ * - Initial volume: 0 (muted)
+ * - On first click: fade in to 60% over 1.5s
  */
 function initMusicWithEditor() {
   // Get saved music URL or use default
   const savedMusic = loadSavedMusic ? loadSavedMusic() : 'js/assets/music/bg-music.mp3';
 
-  bgMusic = document.createElement('audio');
-  bgMusic.src = savedMusic;
-  bgMusic.loop = true;
-  bgMusic.volume = 0.35; // Softer initial volume
-
-  const toggleBtn = document.getElementById('music-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', toggleMusic);
+  // 使用新的音乐控制器
+  if (typeof initMusicController === 'function') {
+    initMusicController(savedMusic);
   }
 
-  bgMusic.addEventListener('play', () => {
-    isMusicPlaying = true;
-    updateMusicUI();
-  });
-
-  bgMusic.addEventListener('pause', () => {
-    isMusicPlaying = false;
-    updateMusicUI();
-  });
-
-  // Set initial UI state (muted)
-  updateMusicUI();
+  // 初始化"女儿出生"节点音量控制
+  if (typeof initDaughterNodeVolumeControl === 'function') {
+    setTimeout(() => initDaughterNodeVolumeControl(), 1000);
+  }
 }
 
 /**
