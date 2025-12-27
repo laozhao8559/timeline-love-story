@@ -16,7 +16,7 @@ const EASTER_EGG_CONFIG = {
   stage1Duration: 1500,
 
   // 阶段1开场文案
-  stage1IntroText: '故事还没有结束。',
+  stage1IntroText: '故事还没有结束……',
 
   // 阶段2：图片每张显示时长（毫秒）- 约0.6秒淡入淡出
   photoDuration: 600,
@@ -246,7 +246,23 @@ function runStage2() {
   // 逐句显示三句文字（前一句不消失，最终同时存在）
   const words = EASTER_EGG_CONFIG.stage2Words;
 
-  function showStage2Line(index) {
+  function typeWriter(element, text, speed = 100) {
+    let i = 0;
+    return new Promise((resolve) => {
+      function type() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          resolve();
+        }
+      }
+      type();
+    });
+  }
+
+  async function showStage2Line(index) {
     if (index >= words.length) {
       // 三句都显示完毕，等待阶段2结束
       return;
@@ -254,16 +270,16 @@ function runStage2() {
 
     const lineEl = document.createElement('div');
     lineEl.className = 'easter-egg-stage2-text-line';
-    lineEl.textContent = words[index];
+    lineEl.classList.add('visible'); // 打字机效果不需要淡入动画
     textContainer.appendChild(lineEl);
 
-    // 淡入当前行
-    setTimeout(() => lineEl.classList.add('visible'), 50);
+    // 打字机效果逐字显示
+    await typeWriter(lineEl, words[index], 150);
 
-    // 下一行的延迟
+    // 等待一下再显示下一句
     setTimeout(() => {
       showStage2Line(index + 1);
-    }, EASTER_EGG_CONFIG.stage2WordInterval);
+    }, 600);
   }
 
   // 开始显示第一句
@@ -340,10 +356,27 @@ function runStage3() {
   // 背景定格在当前图片（不淡出，不清空）
   // 文字叠加在背景图片之上
 
-  // 逐行显示文字
+  // 打字机效果函数（阶段3使用更慢的速度）
+  function typeWriter(element, text, speed = 300) {
+    let i = 0;
+    return new Promise((resolve) => {
+      function type() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          resolve();
+        }
+      }
+      type();
+    });
+  }
+
+  // 逐行显示文字（打字机效果）
   const words = EASTER_EGG_CONFIG.finalWords;
 
-  function showLine(index) {
+  async function showLine(index) {
     if (index >= words.length) {
       // 所有文字显示完毕，进入阶段4
       setTimeout(() => {
@@ -354,11 +387,19 @@ function runStage3() {
 
     const lineEl = document.createElement('div');
     lineEl.className = 'easter-egg-text-line';
-    lineEl.textContent = words[index];
+    lineEl.classList.add('visible'); // 打字机效果不需要淡入动画
     textContainer.appendChild(lineEl);
 
-    // 淡入当前行
-    setTimeout(() => lineEl.classList.add('visible'), 50);
+    // 根据不同的行使用不同的打字速度
+    // 第一句：慢速（300ms/字）
+    // 第二句：稍快（250ms/字）
+    // 第三句：最慢（350ms/字，最温柔）
+    let speed = 300;
+    if (index === 1) speed = 250;
+    if (index === 2) speed = 350;
+
+    // 打字机效果逐字显示
+    await typeWriter(lineEl, words[index], speed);
 
     // 下一行的延迟
     const nextDelay = index === 0 ? EASTER_EGG_CONFIG.line1Delay : EASTER_EGG_CONFIG.line2Delay;

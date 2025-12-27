@@ -314,7 +314,7 @@ body.editor-mode .video-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .easter-egg-overlay.visible {
@@ -344,6 +344,8 @@ body.editor-mode .video-wrapper {
   position: absolute;
   top: 0;
   left: 0;
+  filter: blur(15px) brightness(0.5);
+  transform: scale(1.1); /* 稍微放大避免模糊边缘露白 */
 }
 
 .easter-egg-background .background-image.fade-in {
@@ -416,15 +418,28 @@ body.editor-mode .video-wrapper {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.6);
   pointer-events: none;
   z-index: 1;
+}
+
+/* 添加氛围光晕效果 */
+.easter-egg-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* ========== 阶段3：终极文字 ========== */
 .easter-egg-content {
   position: relative;
-  z-index: 2;
+  z-index: 10;
   width: 100%;
   height: 100%;
   display: flex;
@@ -437,7 +452,7 @@ body.editor-mode .video-wrapper {
 /* ========== 阶段1：开场文案 ========== */
 .easter-egg-intro-text {
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   color: #FFFFFF;
   text-shadow:
     0 0 15px rgba(255, 255, 255, 0.5),
@@ -446,10 +461,39 @@ body.editor-mode .video-wrapper {
   transition: opacity 1s ease-out;
   text-align: center;
   letter-spacing: 0.05em;
+  position: relative;
+  display: inline-block;
 }
 
 .easter-egg-intro-text.visible {
   opacity: 1;
+}
+
+/* 扫光效果 */
+.easter-egg-intro-text.visible::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 200%;
+  }
 }
 
 .easter-egg-text-container {
@@ -467,15 +511,10 @@ body.editor-mode .video-wrapper {
     0 0 15px rgba(255, 255, 255, 0.5),
     0 2px 8px rgba(0, 0, 0, 0.4);
   margin: 12px 0;
-  opacity: 0;
-  transition: opacity 0.8s ease-out;
   text-align: center;
   letter-spacing: 0.05em;
   line-height: 1.6;
-}
-
-.easter-egg-stage2-text-line.visible {
-  opacity: 1;
+  min-height: 1.6em; /* 为打字机效果预留高度 */
 }
 
 .easter-egg-text-line {
@@ -486,15 +525,8 @@ body.editor-mode .video-wrapper {
     0 0 20px rgba(255, 215, 0, 0.8),
     0 2px 10px rgba(0, 0, 0, 0.6);
   margin: 20px 0;
-  opacity: 0;
   line-height: 1.6;
-  transition: opacity 1s ease-out, transform 1s ease-out;
-  transform: translateY(20px);
-}
-
-.easter-egg-text-line.visible {
-  opacity: 1;
-  transform: translateY(0);
+  min-height: 1.6em; /* 为打字机效果预留高度 */
 }
 
 .easter-egg-text-line:last-child {
