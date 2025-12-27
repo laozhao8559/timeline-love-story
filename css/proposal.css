@@ -6,10 +6,11 @@
 /* ========== Proposal Choice Page ========== */
 #proposal-page {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* 改为顶部对齐 */
   justify-content: center;
   min-height: 100vh;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
+  padding-top: var(--spacing-sm);
 }
 
 .proposal-container {
@@ -19,10 +20,10 @@
 }
 
 .proposal-title {
-  font-size: var(--font-size-xl);
+  font-size: clamp(16px, 4vw, 22px); /* 响应式字体大小 */
   color: var(--primary-color);
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.5;
+  margin-bottom: var(--spacing-md); /* 减小间距 */
+  line-height: 1.4;
   font-weight: 600;
 }
 
@@ -30,8 +31,8 @@
 .avatar-grid {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 14; /* 手机屏幕比例，稍微矮一点给下方文字留空间 */
-  max-height: 65vh;
+  aspect-ratio: 9 / 13; /* 调整比例，更矮一点 */
+  max-height: 75vh; /* 增大最大高度 */
   margin: 0 auto;
   padding-bottom: 50px; /* 给下方文字留空间 */
 }
@@ -42,7 +43,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 45%;
+  width: 44%; /* 增大 */
   aspect-ratio: 1;
   background: var(--bg-card);
   border-radius: var(--radius-full);
@@ -66,8 +67,8 @@
 /* ========== 四角小图 - 长方形，众星拱月 ========== */
 .avatar-card.corner {
   position: absolute;
-  width: 28%;
-  height: 20%; /* 长方形 */
+  width: 36%; /* 增大 */
+  height: 30%; /* 增大 */
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -80,28 +81,28 @@
   justify-content: center;
 }
 
-/* 左上角 - 稍微向右下偏移，给中间留空间 */
+/* 左上角 - 紧挨中间圆图 */
 .avatar-card.corner.top-left {
-  top: 5%;
-  left: 2%;
+  top: 2%;
+  left: 0.5%;
 }
 
 /* 右上角 */
 .avatar-card.corner.top-right {
-  top: 5%;
-  right: 2%;
+  top: 2%;
+  right: 0.5%;
 }
 
 /* 左下角 */
 .avatar-card.corner.bottom-left {
-  bottom: 5%;
-  left: 2%;
+  bottom: 2%;
+  left: 0.5%;
 }
 
 /* 右下角 */
 .avatar-card.corner.bottom-right {
-  bottom: 5%;
-  right: 2%;
+  bottom: 2%;
+  right: 0.5%;
 }
 
 /* 悬停效果 */
