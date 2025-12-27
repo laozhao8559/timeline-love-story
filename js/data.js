@@ -137,3 +137,6 @@ const endingConfig = {
 
 // Make endingConfig available globally for editor.js
 window.endingConfig = endingConfig;
+
+// Make timelineData available globally for export functionality
+window.timelineData = timelineData;
