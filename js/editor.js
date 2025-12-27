@@ -2045,18 +2045,34 @@ function initChoiceButtons() {
   const btnYes = document.getElementById('btn-yes');
   const btnNo = document.getElementById('btn-no');
 
-  if (btnYes) {
-    btnYes.addEventListener('click', () => transitionToPage('proposal'));
-  }
+  if (!btnYes || !btnNo) return;
 
-  if (btnNo) {
-    btnNo.addEventListener('click', (e) => {
-      const rect = btnNo.getBoundingClientRect();
-      const newX = e.clientX - rect.left - rect.width / 2;
-      const newY = e.clientY - rect.top - rect.height / 2;
-      btnNo.style.transform = 'translate(' + newX + 'px, ' + newY + 'px)';
-    });
-  }
+  let noClickCount = 0;
+
+  btnYes.addEventListener('click', () => {
+    transitionToPage('proposal');
+  });
+
+  btnNo.addEventListener('click', () => {
+    noClickCount++;
+
+    if (noClickCount === 1) {
+      btnNo.style.transform = 'translateX(100px)';
+      btnNo.textContent = '真的吗？';
+    } else if (noClickCount === 2) {
+      btnNo.style.transform = 'translateX(-100px)';
+      btnNo.textContent = '再考虑一下？';
+    } else {
+      btnNo.classList.remove('btn-secondary');
+      btnNo.classList.add('btn-primary');
+      btnNo.textContent = '愿意❤';
+      btnNo.style.transform = 'translateX(0)';
+
+      btnNo.addEventListener('click', () => {
+        transitionToPage('proposal');
+      }, { once: true });
+    }
+  });
 }
 
 // ========== 求婚页 ==========
@@ -2166,8 +2182,75 @@ function showEscapeMessage(card, message, name) {
 
 function showSuccess() {
   const overlay = document.getElementById('success-overlay');
-  if (overlay) {
-    overlay.classList.add('show');
+  const messageEl = document.getElementById('success-message');
+
+  if (!overlay || !messageEl) return;
+
+  // Show overlay
+  overlay.classList.add('active');
+
+  // Typewriter effect
+  const message = '这才是属于我们的故事...';
+  typewriterEffect(messageEl, message, () => {
+    // After typewriter completes, wait 1.5s then confetti
+    setTimeout(() => {
+      createConfetti();
+      setTimeout(() => {
+        transitionToPage('timeline');
+      }, 500);
+    }, 1500);
+  });
+}
+
+/**
+ * Typewriter effect for text
+ */
+function typewriterEffect(element, text, callback) {
+  let index = 0;
+  element.innerHTML = '<span class="typewriter-cursor"></span>';
+
+  const interval = setInterval(() => {
+    if (index < text.length) {
+      const char = text.charAt(index);
+      const cursor = '<span class="typewriter-cursor"></span>';
+      element.innerHTML = text.substring(0, index + 1) + cursor;
+      index++;
+    } else {
+      clearInterval(interval);
+      // Remove cursor after a delay
+      setTimeout(() => {
+        element.innerHTML = text;
+      }, 500);
+
+      if (callback) callback();
+    }
+  }, 100);
+}
+
+/**
+ * Create confetti effect
+ */
+function createConfetti() {
+  const container = document.getElementById('confetti-container');
+  if (!container) return;
+
+  const colors = ['#FF6B9D', '#FFB3D1', '#FFD700', '#51cf66', '#339af0'];
+  const confettiCount = 50;
+
+  for (let i = 0; i < confettiCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + '%';
+    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+    confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+
+    container.appendChild(confetti);
+
+    // Trigger animation
+    setTimeout(() => {
+      confetti.classList.add('falling');
+    }, 10);
   }
 }
 
@@ -2253,9 +2336,10 @@ ${css}
     <div class="success-overlay" id="success-overlay">
       <div class="success-content">
         <div class="success-icon">💕</div>
-        <p class="success-message">我就知道你会选我！</p>
+        <p class="success-message" id="success-message"></p>
       </div>
     </div>
+    <div class="confetti-container" id="confetti-container"></div>
   </div>
 
   <!-- Timeline Page -->
