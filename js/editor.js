@@ -2098,14 +2098,70 @@ function initProposalPage() {
         showSuccess();
         setTimeout(() => transitionToPage('timeline'), 2000);
       } else {
-        // 错误选择：抖动动画
-        card.style.animation = 'shake 0.5s';
-        setTimeout(() => card.style.animation = '', 500);
+        // 点击周围图片：让图片飞走并显示留言
+        makeAvatarEscape(card, avatar);
       }
     });
 
     grid.appendChild(card);
   });
+}
+
+/**
+ * 让头像飞走并显示留言
+ */
+function makeAvatarEscape(card, avatar) {
+  if (card.classList.contains('escaping')) return;
+
+  // 添加 escaping 类，触发飞走动画
+  card.classList.add('escaping');
+
+  // 动画结束后显示留言
+  setTimeout(() => {
+    if (avatar && avatar.escapeMessage) {
+      showEscapeMessage(card, avatar.escapeMessage, avatar.name);
+    }
+  }, 800);
+}
+
+/**
+ * 显示逃跑后的留言
+ */
+function showEscapeMessage(card, message, name) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'avatar-escape-message';
+
+  // 根据卡片位置添加对应的类名
+  if (card.classList.contains('top-left')) {
+    messageDiv.classList.add('position-top-left');
+  } else if (card.classList.contains('top-right')) {
+    messageDiv.classList.add('position-top-right');
+  } else if (card.classList.contains('bottom-left')) {
+    messageDiv.classList.add('position-bottom-left');
+  } else if (card.classList.contains('bottom-right')) {
+    messageDiv.classList.add('position-bottom-right');
+  }
+
+  // 创建文字元素，添加 data-text 属性用于扫光效果
+  const textDiv = document.createElement('div');
+  textDiv.className = 'escape-message-text';
+  textDiv.textContent = message;
+  textDiv.setAttribute('data-text', message);
+
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'escape-message-name';
+  nameDiv.textContent = '--- ' + name;
+
+  messageDiv.appendChild(textDiv);
+  messageDiv.appendChild(nameDiv);
+
+  // 插入到 avatar-grid 中
+  const grid = document.getElementById('avatar-grid');
+  if (grid) {
+    grid.appendChild(messageDiv);
+    // 触发淡入动画
+    setTimeout(() => messageDiv.classList.add('visible'), 50);
+  }
 }
 
 function showSuccess() {
