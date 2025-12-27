@@ -233,7 +233,7 @@ function runStage1() {
       charSpans.forEach((span, i) => {
         setTimeout(() => {
           span.classList.add('jump-wave');
-        }, i * 100); // 每个字延迟100ms
+        }, i * 200); // 每个字延迟200ms（慢2倍）
       });
     }, 1000);
 
