@@ -27,6 +27,22 @@
   transform: scale(0.95);
 }
 
+/* 播放状态：旋转动画 */
+.music-toggle.playing {
+  animation: musicSpin 3s linear infinite;
+  border-color: #FF6B9D;
+  background: rgba(255, 255, 255, 1);
+}
+
+@keyframes musicSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .music-icon {
   display: block;
 }

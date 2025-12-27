@@ -1,15 +1,21 @@
 /**
  * 音乐控制器
  * 统一管理音乐播放、音量渐变、场景音量调节
+ *
+ * 行为：
+ * - 页面加载自动播放（音量为0，静音播放）
+ * - 按钮只控制音量开关（🎵 关闭 🔊 开启）
+ * - 不是暂停/播放，音乐一直播放
  */
 
 // ========== 音乐状态 ==========
-let bgMusic = null;
-let isMusicPlaying = false;
-let currentVolume = 0;
-let targetVolume = 0;
-let volumeFadeInterval = null;
-let userClosedMusic = false; // 记住用户是否主动关闭
+// 使用 var 声明全局变量（允许重复声明）
+var bgMusic = null;
+var isMusicPlaying = false;
+var isMuted = true; // 默认静音
+var currentVolume = 0;
+var targetVolume = 0;
+var volumeFadeInterval = null;
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -18,7 +24,7 @@ const SCENE_VOLUMES = {
   easterEggStart: 0.40, // 彩蛋开始
   finalWords: 0.65,    // 终极文字
   easterEggEnd: 0.45,  // 彩蛋结束
-  userPlay: 0.60       // 用户首次点击播放
+  unmuted: 0.60        // 用户开启声音时的音量
 };
 
 // 当前场景
@@ -37,19 +43,9 @@ function initMusicController(musicSrc) {
   bgMusic = document.createElement('audio');
   bgMusic.src = musicSrc;
   bgMusic.loop = true;
-  bgMusic.volume = 0; // 初始静音
+  bgMusic.volume = 0; // 初始音量为0（静音播放）
   bgMusic.preload = 'auto';
-
-  // 监听播放状态
-  bgMusic.addEventListener('play', () => {
-    isMusicPlaying = true;
-    updateMusicUI();
-  });
-
-  bgMusic.addEventListener('pause', () => {
-    isMusicPlaying = false;
-    updateMusicUI();
-  });
+  bgMusic.muted = true; // 先设置为静音，绕过自动播放限制
 
   // 绑定切换按钮
   const toggleBtn = document.getElementById('music-toggle');
@@ -60,70 +56,127 @@ function initMusicController(musicSrc) {
   // 初始化UI状态
   updateMusicUI();
 
-  console.log('[Music] 音乐控制器已初始化');
+  // 等待音频元数据加载后尝试播放
+  bgMusic.addEventListener('canplaythrough', () => {
+    console.log('[Music] 音频加载完成，尝试播放');
+    attemptAutoplay();
+  }, { once: true });
+
+  // 如果已经加载完成，直接尝试播放
+  if (bgMusic.readyState >= 4) {
+    attemptAutoplay();
+  }
+
+  console.log('[Music] 音乐控制器已初始化，文件:', musicSrc);
 }
 
 /**
- * 切换音乐播放/暂停
+ * 尝试自动播放
+ * 使用 muted 属性绕过浏览器限制，播放后立即取消静音
  */
-function toggleMusic() {
+function attemptAutoplay() {
   if (!bgMusic) return;
 
-  if (isMusicPlaying) {
-    // 用户主动关闭
-    pauseMusic();
-    userClosedMusic = true;
-    console.log('[Music] 用户主动关闭音乐');
-  } else {
-    // 用户点击播放
-    if (userClosedMusic) {
-      // 之前被用户关闭过，需要明确再次播放
-      playMusic();
-      userClosedMusic = false;
-    } else {
-      // 首次播放：渐入效果
-      fadeInMusic(SCENE_VOLUMES.userPlay, 1500);
-    }
+  const playPromise = bgMusic.play();
+
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      // 播放成功，取消静音但保持音量为0
+      bgMusic.muted = false;
+      isMusicPlaying = true;
+      console.log('[Music] 自动播放成功（静音）');
+    }).catch(err => {
+      console.log('[Music] 自动播放被阻止，等待用户交互');
+
+      // 监听第一次用户交互
+      const handleFirstInteraction = () => {
+        bgMusic.muted = false;
+        bgMusic.play().then(() => {
+          isMusicPlaying = true;
+          console.log('[Music] 用户交互后播放成功（静音）');
+        }).catch(e => {
+          console.warn('[Music] 播放失败:', e);
+        });
+
+        // 移除监听
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('touchstart', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
+
+      // 监听各种用户交互
+      document.addEventListener('click', handleFirstInteraction, { once: true });
+      document.addEventListener('touchstart', handleFirstInteraction, { once: true });
+      document.addEventListener('keydown', handleFirstInteraction, { once: true });
+    });
   }
 }
 
 /**
- * 播放音乐（立即）
+ * 切换声音开关
+ * 🎵 → 🔊 (渐入到60%)
+ * 🔊 → 🎵 (渐出到0)
  */
-function playMusic() {
+function toggleMusic() {
   if (!bgMusic) return;
-  bgMusic.play().catch(err => {
-    console.warn('[Music] 播放失败:', err);
-  });
+
+  if (isMuted) {
+    // 开启声音：渐入
+    unmuteMusic();
+  } else {
+    // 关闭声音：渐出
+    muteMusic();
+  }
 }
 
 /**
- * 暂停音乐
+ * 开启声音（渐入）
  */
-function pauseMusic() {
+function unmuteMusic() {
   if (!bgMusic) return;
-  bgMusic.pause();
+
+  // 如果还没播放，先播放
+  if (!isMusicPlaying) {
+    bgMusic.play().catch(err => console.warn('[Music] 播放失败:', err));
+  }
+
+  isMuted = false;
+  const targetVol = SCENE_VOLUMES[currentScene] || SCENE_VOLUMES.normal;
+
+  console.log('[Music] 开启声音，渐入到', targetVol);
+  fadeInMusic(targetVol, 1000);
 }
 
 /**
- * 音乐渐入效果
+ * 关闭声音（渐出）
+ */
+function muteMusic() {
+  if (!bgMusic) return;
+
+  isMuted = true;
+
+  console.log('[Music] 关闭声音，渐出');
+  fadeOutMusic(800);
+}
+
+/**
+ * 音乐渐入效果（只调节音量，不改变播放状态）
  * @param {number} targetVol - 目标音量 (0-1)
  * @param {number} duration - 渐入时长（毫秒）
  */
-function fadeInMusic(targetVol, duration = 1500) {
+function fadeInMusic(targetVol, duration = 1000) {
   if (!bgMusic) return;
 
   targetVolume = Math.min(targetVol, 1);
-  currentVolume = bgMusic.volume;
+  const startVolume = bgMusic.volume;
   const startTime = Date.now();
-  const startVolume = currentVolume;
 
   // 清除之前的渐变
   if (volumeFadeInterval) {
     clearInterval(volumeFadeInterval);
   }
 
-  console.log(`[Music] 渐入: ${startVolume} → ${targetVolume} (${duration}ms)`);
+  console.log(`[Music] 渐入: ${startVolume.toFixed(2)} → ${targetVolume.toFixed(2)} (${duration}ms)`);
 
   volumeFadeInterval = setInterval(() => {
     const elapsed = Date.now() - startTime;
@@ -135,11 +188,6 @@ function fadeInMusic(targetVol, duration = 1500) {
 
     bgMusic.volume = currentVolume;
 
-    // 开始播放（如果是首次）
-    if (progress === 0 && !isMusicPlaying) {
-      bgMusic.play().catch(err => console.warn('[Music] 播放失败:', err));
-    }
-
     if (progress >= 1) {
       clearInterval(volumeFadeInterval);
       volumeFadeInterval = null;
@@ -148,11 +196,11 @@ function fadeInMusic(targetVol, duration = 1500) {
 }
 
 /**
- * 音乐渐出效果
+ * 音乐渐出效果（只调节音量，不暂停播放）
  * @param {number} duration - 渐出时长（毫秒）
  * @param {Function} callback - 完成后的回调
  */
-function fadeOutMusic(duration = 1000, callback) {
+function fadeOutMusic(duration = 800, callback) {
   if (!bgMusic) return;
 
   const startVolume = bgMusic.volume;
@@ -162,7 +210,7 @@ function fadeOutMusic(duration = 1000, callback) {
     clearInterval(volumeFadeInterval);
   }
 
-  console.log(`[Music] 渐出: ${startVolume} → 0 (${duration}ms)`);
+  console.log(`[Music] 渐出: ${startVolume.toFixed(2)} → 0 (${duration}ms)`);
 
   volumeFadeInterval = setInterval(() => {
     const elapsed = Date.now() - startTime;
@@ -181,11 +229,21 @@ function fadeOutMusic(duration = 1000, callback) {
 
 /**
  * 设置场景音量（平滑过渡）
+ * 如果当前静音，只记录目标场景，不改变音量
  * @param {string} scene - 场景名称
  * @param {number} duration - 过渡时长（毫秒）
  */
 function setSceneVolume(scene, duration = 1000) {
-  if (!bgMusic || !isMusicPlaying) return;
+  if (!bgMusic) return;
+
+  // 更新当前场景
+  currentScene = scene;
+
+  // 如果静音状态，只记录场景，不改变音量
+  if (isMuted) {
+    console.log(`[Music] 静音中，仅更新场景: ${scene}`);
+    return;
+  }
 
   const targetVol = SCENE_VOLUMES[scene] || SCENE_VOLUMES.normal;
   const startVolume = bgMusic.volume;
@@ -195,8 +253,7 @@ function setSceneVolume(scene, duration = 1000) {
     clearInterval(volumeFadeInterval);
   }
 
-  console.log(`[Music] 场景音量: ${currentScene}(${startVolume.toFixed(2)}) → ${scene}(${targetVol.toFixed(2)})`);
-  currentScene = scene;
+  console.log(`[Music] 场景音量: ${startVolume.toFixed(2)} → ${targetVol.toFixed(2)} (${scene})`);
 
   volumeFadeInterval = setInterval(() => {
     const elapsed = Date.now() - startTime;
@@ -259,20 +316,24 @@ function updateMusicUI() {
 
   if (!toggleBtn || !icon) return;
 
-  if (isMusicPlaying) {
-    toggleBtn.classList.add('playing');
-    icon.textContent = '🔊';
-  } else {
+  if (isMuted) {
+    // 静音状态：显示🎵，灰色
     toggleBtn.classList.remove('playing');
     icon.textContent = '🎵';
+  } else {
+    // 播放状态：显示🔊，动画
+    toggleBtn.classList.add('playing');
+    icon.textContent = '🔊';
   }
 }
 
-// ========== 导出全局变量（兼容旧代码） ==========
+// ========== 导出全局函数（兼容旧代码） ==========
 if (typeof window !== 'undefined') {
-  window.bgMusic = bgMusic;
-  window.isMusicPlaying = isMusicPlaying;
   window.toggleMusic = toggleMusic;
   window.setSceneVolume = setSceneVolume;
   window.initDaughterNodeVolumeControl = initDaughterNodeVolumeControl;
+  window.muteMusic = muteMusic;
+  window.unmuteMusic = unmuteMusic;
+  window.updateMusicUI = updateMusicUI;
 }
+

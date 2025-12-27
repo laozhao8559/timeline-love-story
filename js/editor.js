@@ -132,6 +132,9 @@ function enterEditMode() {
   const savedBlocks = StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS);
   editingStandaloneBlocks = savedBlocks || [];
 
+  // 更新音乐显示信息
+  updateMusicDisplay();
+
   // Re-render timeline with edit controls
   renderTimelineWithEditControls();
   updateStorageIndicator();
@@ -1254,6 +1257,10 @@ function updateMusicDisplay() {
   if (saved) {
     if (musicInfo) musicInfo.textContent = saved.name;
     if (musicSize) musicSize.textContent = saved.size;
+  } else {
+    // 显示默认预置音乐信息
+    if (musicInfo) musicInfo.textContent = 'One Summer\'s Day.mp3 (默认)';
+    if (musicSize) musicSize.textContent = formatFileSize(3808744); // 3.6 MB
   }
 }
 
@@ -1374,6 +1381,10 @@ function initEditor() {
 
   // Load saved music
   const savedMusic = loadSavedMusic();
+
+  // 更新音乐显示信息（包括默认音乐）
+  updateMusicDisplay();
+
   return savedMusic;
 }
 

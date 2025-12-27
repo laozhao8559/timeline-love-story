@@ -17,6 +17,13 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <!-- ========== Global Music Controller (Always Visible) ========== -->
+  <div id="music-controller" class="music-controller">
+    <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
+      <span class="music-icon">🎵</span>
+    </button>
+  </div>
+
   <!-- ========== Global Editor Toggle (Always Visible) ========== -->
   <div class="editor-mode-toggle">
     <button class="btn-editor-toggle" onclick="toggleEditorMode()">
@@ -93,13 +100,6 @@
 
   <!-- ========== Timeline Page ========== -->
   <div id="timeline-page" class="page hidden">
-    <!-- Music Controller -->
-    <div id="music-controller" class="music-controller">
-      <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
-        <span class="music-icon">🎵</span>
-      </button>
-    </div>
-
     <!-- Timeline Container -->
     <div class="timeline-container">
       <header class="timeline-header">

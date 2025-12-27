@@ -106,7 +106,6 @@ function handlePageInit(pageKey) {
         }
       }
       initScrollAnimations();
-      initMusicWithEditor();
 
       // 初始化彩蛋检测（仅在非编辑模式）
       if (!editorMode && typeof initEasterEgg === 'function') {
@@ -124,12 +123,12 @@ function handlePageInit(pageKey) {
  * - On first click: fade in to 60% over 1.5s
  */
 function initMusicWithEditor() {
-  // Get saved music URL or use default
-  const savedMusic = loadSavedMusic ? loadSavedMusic() : 'js/assets/music/bg-music.mp3';
+  // 直接使用默认音乐路径（用户已经放好文件）
+  const musicPath = 'js/assets/music/bg-music.mp3';
 
   // 使用新的音乐控制器
   if (typeof initMusicController === 'function') {
-    initMusicController(savedMusic);
+    initMusicController(musicPath);
   }
 
   // 初始化"女儿出生"节点音量控制
@@ -167,6 +166,9 @@ function init() {
   if (typeof initEditor === 'function') {
     initEditor();
   }
+
+  // Initialize music controller (always present, muted autoplay)
+  initMusicWithEditor();
 
   // Initialize choice buttons
   initChoiceButtons();
