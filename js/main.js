@@ -271,47 +271,53 @@ function escapeHtml(text) {
 
 /**
  * Avatar data for the proposal page
+ * 布局：中间大图（刘浩），四角小图（胡歌、彭于晏、张若昀、王凯）
  */
 const avatarData = [
   {
-    id: 'me',
+    id: 'center',
     name: '刘浩',
     emoji: '👨',
     isMe: true,
-    photo: null, // Will store uploaded photo data URL
-    bubbleText: ''
-  },
-  {
-    id: 'star1',
-    name: '彭于晏',
-    emoji: '🤵',
-    isMe: false,
     photo: null,
-    bubbleText: '我只是来凑热闹的～'
+    position: 'center', // 中间大图
+    bubbleText: '这是我'
   },
   {
-    id: 'star2',
+    id: 'top-left',
     name: '胡歌',
     emoji: '🎭',
     isMe: false,
     photo: null,
+    position: 'top-left', // 左上角
     bubbleText: '不合适不合适～'
   },
   {
-    id: 'star3',
-    name: '易烊千玺',
-    emoji: '💃',
+    id: 'top-right',
+    name: '彭于晏',
+    emoji: '🤵',
     isMe: false,
     photo: null,
-    bubbleText: '抓不到我哦～'
+    position: 'top-right', // 右上角
+    bubbleText: '我只是来凑热闹的～'
   },
   {
-    id: 'star4',
-    name: '王俊凯',
-    emoji: '🎤',
+    id: 'bottom-left',
+    name: '张若昀',
+    emoji: '🎬',
     isMe: false,
     photo: null,
-    bubbleText: '我选择退出～'
+    position: 'bottom-left', // 左下角
+    bubbleText: '我还是走吧～'
+  },
+  {
+    id: 'bottom-right',
+    name: '王凯',
+    emoji: '🎩',
+    isMe: false,
+    photo: null,
+    position: 'bottom-right', // 右下角
+    bubbleText: '告辞告辞～'
   }
 ];
 
@@ -335,17 +341,15 @@ function initProposalPage() {
     }
   });
 
-  // Shuffle non-me avatars
-  const nonMeAvatars = avatarData.filter(a => !a.isMe);
-  shuffleArray(nonMeAvatars);
+  // Load saved names
+  const savedNames = StorageManager?.load?.('avatar_names') || {};
+  avatarData.forEach(avatar => {
+    if (savedNames[avatar.id]) {
+      avatar.name = savedNames[avatar.id];
+    }
+  });
 
-  // Rebuild avatarData with shuffled order (keep 'me' at position 0)
-  const shuffledData = [avatarData[0], ...nonMeAvatars];
-  for (let i = 0; i < avatarData.length; i++) {
-    avatarData[i] = shuffledData[i];
-  }
-
-  // Create avatar cards
+  // Create avatar cards according to their positions
   avatarData.forEach((avatar, index) => {
     const card = createAvatarCard(avatar, index);
     grid.appendChild(card);
@@ -360,34 +364,17 @@ function initProposalPage() {
 
 /**
  * Create avatar upload section (editor mode)
+ * 注意：现在可以直接点击头像上传，这个区域只是辅助说明
  */
 function createAvatarUploadSection() {
   const section = document.createElement('div');
   section.className = 'avatar-upload-section';
-  section.style.cssText = 'grid-column: 1 / -1; padding: 20px; background: rgba(255,182,193,0.1); border-radius: 12px; margin-top: 20px;';
 
   section.innerHTML = `
-    <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 16px;">📷 上传照片</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
-      ${avatarData.map((avatar, index) => `
-        <div class="avatar-upload-item" data-index="${index}" style="text-align: center;">
-          <button class="avatar-upload-btn" onclick="uploadAvatarPhoto(${index})" style="
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 2px dashed var(--primary-light);
-            background: white;
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 8px;
-          ">📷</button>
-          <div style="font-size: 12px; color: var(--text-secondary);">${avatar.name}</div>
-        </div>
-      `).join('')}
-    </div>
+    <h3>📷 点击上方头像即可上传照片</h3>
+    <p style="text-align: center; color: var(--text-secondary); font-size: 12px;">
+      中间大图是主角，四角小图会逃跑～
+    </p>
   `;
 
   return section;
@@ -434,34 +421,46 @@ function uploadAvatarPhoto(index) {
  */
 function createAvatarCard(avatar, index) {
   const card = document.createElement('div');
-  card.className = `avatar-card${avatar.isMe ? ' is-me' : ''}`;
+
+  // 添加位置类名
+  const positionClass = avatar.position === 'center' ? 'center' : `corner ${avatar.position}`;
+  card.className = `avatar-card ${positionClass}`;
   card.dataset.avatarId = avatar.id;
+  card.dataset.avatarIndex = index;
 
   // Display photo if available, otherwise emoji
   let avatarContent;
   if (avatar.photo) {
-    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}">`;
   } else {
-    avatarContent = avatar.emoji;
+    avatarContent = `<span class="avatar-emoji">${avatar.emoji}</span>`;
   }
 
+  // Name display: editable input in editor mode, plain text otherwise
+  const nameHtml = editorMode
+    ? `<input type="text" class="avatar-name-input" value="${escapeHtml(avatar.name)}"
+        onchange="updateAvatarName(${index}, this.value)">`
+    : `<div class="avatar-name">${avatar.name}</div>`;
+
   card.innerHTML = `
-    <div class="bubble-message">${avatar.bubbleText || ''}</div>
     <div class="avatar-image-wrapper">
       ${avatarContent}
     </div>
-    ${editorMode ? `<input type="text" value="${escapeHtml(avatar.name)}"
-      onchange="updateAvatarName(${index}, this.value)"
-      style="width: 100%; text-align: center; border: 1px dashed var(--primary-light);
-      border-radius: 4px; padding: 2px; font-size: 12px; margin-top: 4px;">`
-      : `<div class="avatar-name">${avatar.name}</div>`}
+    ${nameHtml}
   `;
 
   // Add click handler
   card.addEventListener('click', (e) => {
     // Don't trigger if clicking on input in editor mode
     if (e.target.tagName === 'INPUT') return;
-    handleAvatarClick(avatar, card);
+
+    if (editorMode) {
+      // 编辑模式：点击上传图片
+      uploadAvatarPhoto(index);
+    } else {
+      // 预览模式：点击处理交互
+      handleAvatarClick(avatar, card);
+    }
   });
 
   return card;
@@ -472,8 +471,11 @@ function createAvatarCard(avatar, index) {
  */
 function updateAvatarName(index, newName) {
   avatarData[index].name = newName;
-  // Note: names are not persisted separately, they're part of avatarData
-  // You could add separate storage if needed
+
+  // 保存名字到 localStorage
+  const savedNames = StorageManager?.load?.('avatar_names') || {};
+  savedNames[avatarData[index].id] = newName;
+  StorageManager?.save?.('avatar_names', savedNames);
 }
 
 /**
@@ -495,11 +497,16 @@ function handleAvatarClick(avatar, card) {
 function makeAvatarEscape(card) {
   if (card.classList.contains('escaping')) return;
 
-  // Random escape direction
-  const directions = ['escape-left', 'escape-right', 'escape-up', 'escape-down'];
-  const randomDirection = directions[Math.floor(Math.random() * directions.length)];
-
-  card.classList.add('escaping', randomDirection);
+  // 根据卡片位置决定逃跑方向
+  if (card.classList.contains('top-left')) {
+    card.classList.add('escaping'); // CSS 会根据 top-left 类自动处理逃跑方向
+  } else if (card.classList.contains('top-right')) {
+    card.classList.add('escaping');
+  } else if (card.classList.contains('bottom-left')) {
+    card.classList.add('escaping');
+  } else if (card.classList.contains('bottom-right')) {
+    card.classList.add('escaping');
+  }
 }
 
 /**
