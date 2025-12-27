@@ -26,9 +26,9 @@ const EASTER_EGG_CONFIG = {
 
   // 阶段2：三句文字内容（逐句淡入，保留在屏幕）
   stage2Words: [
-    '是你，让日子有了重量',
-    '是你，让时间变得温柔',
-    '是你，让我有了家'
+    '是你，让日子有了重量……',
+    '是你，让时间变得温柔……',
+    '是你，让我有了家……'
   ],
 
   // 阶段2：每句文字间隔（毫秒）- 0.6～0.8秒
@@ -40,9 +40,9 @@ const EASTER_EGG_CONFIG = {
 
   // 终极文字内容（3行，克制表达）
   finalWords: [
-    '这不是一个网页。',
-    '这是我想陪你走完的这一生。',
-    '生日快乐，我的爱人。'
+    '这不是一个网页！',
+    '这是我想陪你走完的这一生……',
+    '❤生日快乐，我的爱人❤'
   ]
 };
 
@@ -205,7 +205,7 @@ function runStage1() {
   // 淡入 Overlay
   setTimeout(() => easterEggOverlay.classList.add('visible'), 50);
 
-  // 显示开场文案："故事还没有结束。"
+  // 显示开场文案："故事还没有结束……"
   const textContainer = document.getElementById('easter-egg-text-container');
   if (textContainer) {
     const introEl = document.createElement('div');
@@ -215,12 +215,19 @@ function runStage1() {
 
     // 淡入开场文案
     setTimeout(() => introEl.classList.add('visible'), 100);
-  }
 
-  // 阶段1 完成后（1.5秒后）进入阶段2
-  setTimeout(() => {
-    runStage2();
-  }, EASTER_EGG_CONFIG.stage1Duration);
+    // 停留2秒后，淡出开场文案
+    setTimeout(() => {
+      introEl.classList.remove('visible'); // 移除 visible 类触发淡出
+      introEl.classList.add('fading-out'); // 添加淡出状态
+
+      // 淡出完成后（1秒），清空文字并进入阶段2
+      setTimeout(() => {
+        textContainer.innerHTML = '';
+        runStage2();
+      }, 1000);
+    }, 2000);
+  }
 }
 
 /**
@@ -246,7 +253,7 @@ function runStage2() {
   // 逐句显示三句文字（前一句不消失，最终同时存在）
   const words = EASTER_EGG_CONFIG.stage2Words;
 
-  function typeWriter(element, text, speed = 100) {
+  function typeWriter(element, text, speed = 300) {
     let i = 0;
     return new Promise((resolve) => {
       function type() {
@@ -264,7 +271,11 @@ function runStage2() {
 
   async function showStage2Line(index) {
     if (index >= words.length) {
-      // 三句都显示完毕，等待阶段2结束
+      // 三句都显示完毕，停留2秒后进入阶段3
+      console.log('[EasterEgg] 阶段2三句文字显示完毕，停留2秒');
+      setTimeout(() => {
+        runStage3();
+      }, 2000);
       return;
     }
 
@@ -273,8 +284,8 @@ function runStage2() {
     lineEl.classList.add('visible'); // 打字机效果不需要淡入动画
     textContainer.appendChild(lineEl);
 
-    // 打字机效果逐字显示
-    await typeWriter(lineEl, words[index], 150);
+    // 打字机效果逐字显示（300ms/字，比原来的150ms慢2倍）
+    await typeWriter(lineEl, words[index], 300);
 
     // 等待一下再显示下一句
     setTimeout(() => {
@@ -284,11 +295,6 @@ function runStage2() {
 
   // 开始显示第一句
   showStage2Line(0);
-
-  // 阶段2 完成后（4.5秒后）进入阶段3
-  setTimeout(() => {
-    runStage3();
-  }, EASTER_EGG_CONFIG.stage2Duration);
 }
 
 /**
@@ -401,6 +407,21 @@ function runStage3() {
     // 打字机效果逐字显示
     await typeWriter(lineEl, words[index], speed);
 
+    // 如果是第三句（生日快乐，我的爱人。），打字完成后添加跳跃效果
+    if (index === 2) {
+      // 将文字拆分成单个字的 span
+      const text = lineEl.textContent;
+      lineEl.textContent = '';
+      const chars = text.split('');
+      chars.forEach((char, i) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.className = 'jump-char';
+        span.style.animationDelay = `${i * 0.15}s`; // 每个字延迟 150ms
+        lineEl.appendChild(span);
+      });
+    }
+
     // 下一行的延迟
     const nextDelay = index === 0 ? EASTER_EGG_CONFIG.line1Delay : EASTER_EGG_CONFIG.line2Delay;
     setTimeout(() => {
@@ -439,10 +460,11 @@ function handleContinueClick() {
     backgroundSlideshowInterval = null;
   }
 
-  // 2. 恢复时间轴样式
+  // 2. 将时间轴切换到未来节点模式（保持虚化）
   const timelineContainer = document.querySelector('.timeline-container');
   if (timelineContainer) {
     timelineContainer.classList.remove('easter-egg-stage1');
+    timelineContainer.classList.add('future-node-mode');
   }
 
   // 3. 恢复音乐到彩蛋结束音量
@@ -450,20 +472,41 @@ function handleContinueClick() {
     setSceneVolume('easterEggEnd', 1500);
   }
 
-  // 4. 淡出覆盖层
-  easterEggOverlay.classList.remove('visible');
-  setTimeout(() => {
-    if (easterEggOverlay) {
-      easterEggOverlay.remove();
-      easterEggOverlay = null;
-    }
-  }, 500);
+  // 4. 将 Overlay 改为纯色背景（去掉图片，保持虚化氛围）
+  const backgroundEl = document.getElementById('easter-egg-background');
+  if (backgroundEl) {
+    backgroundEl.style.opacity = '0';
+    backgroundEl.style.transition = 'opacity 1s ease-out';
+  }
+
+  // 隐藏文字容器和按钮
+  const textContainer = document.getElementById('easter-egg-text-container');
+  const continueBtn = document.getElementById('easter-continue-btn');
+  if (textContainer) textContainer.style.display = 'none';
+  if (continueBtn) continueBtn.style.display = 'none';
 
   // 5. 解锁滚动
   unlockScroll();
 
   // 6. 添加未来节点
   setTimeout(() => addFutureNode(), 300);
+
+  // 7. 未来节点出现后，淡出 Overlay
+  setTimeout(() => {
+    if (easterEggOverlay) {
+      easterEggOverlay.classList.remove('visible');
+      setTimeout(() => {
+        if (easterEggOverlay) {
+          easterEggOverlay.remove();
+          easterEggOverlay = null;
+        }
+        // 移除时间轴的虚化效果
+        if (timelineContainer) {
+          timelineContainer.classList.remove('future-node-mode');
+        }
+      }, 1000);
+    }
+  }, 2000);
 }
 
 /**
