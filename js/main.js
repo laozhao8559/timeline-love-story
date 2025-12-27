@@ -436,12 +436,25 @@ function uploadAvatarPhoto(index) {
       // Save to avatar data
       avatarData[index].photo = dataUrl;
 
+      // Reset offset and scale when uploading new photo
+      avatarData[index].imageOffset = { x: 0, y: 0 };
+      avatarData[index].imageScale = 1;
+
       // Save to localStorage
       const savedPhotos = StorageManager?.load?.(AVATAR_PHOTOS_KEY) || {};
       savedPhotos[avatarData[index].id] = dataUrl;
 
+      // Reset offset and scale in storage
+      const savedOffsets = StorageManager?.load?.(AVATAR_OFFSETS_KEY) || {};
+      savedOffsets[avatarData[index].id] = { x: 0, y: 0 };
+
+      const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+      savedScales[avatarData[index].id] = 1;
+
       try {
         StorageManager.save(AVATAR_PHOTOS_KEY, savedPhotos);
+        StorageManager.save(AVATAR_OFFSETS_KEY, savedOffsets);
+        StorageManager.save(AVATAR_SCALES_KEY, savedScales);
         showToast('照片已上传', 'success');
         initProposalPage(); // Re-render
       } catch (e) {
@@ -451,6 +464,36 @@ function uploadAvatarPhoto(index) {
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+/**
+ * Delete avatar photo (恢复成emoji)
+ */
+function deleteAvatarPhoto(index) {
+  if (!confirm('确定要删除这张图片吗？')) return;
+
+  const avatar = avatarData[index];
+  avatar.photo = null;
+
+  // 删除localStorage中的照片
+  const savedPhotos = StorageManager?.load?.(AVATAR_PHOTOS_KEY) || {};
+  delete savedPhotos[avatar.id];
+  StorageManager?.save?.(AVATAR_PHOTOS_KEY, savedPhotos);
+
+  // 重置偏移和缩放
+  avatar.imageOffset = { x: 0, y: 0 };
+  avatar.imageScale = 1;
+
+  const savedOffsets = StorageManager?.load?.(AVATAR_OFFSETS_KEY) || {};
+  delete savedOffsets[avatar.id];
+  StorageManager?.save?.(AVATAR_OFFSETS_KEY, savedOffsets);
+
+  const savedScales = StorageManager?.load?.(AVATAR_SCALES_KEY) || {};
+  delete savedScales[avatar.id];
+  StorageManager?.save?.(AVATAR_SCALES_KEY, savedScales);
+
+  showToast('图片已删除', 'success');
+  initProposalPage(); // Re-render
 }
 
 /**
@@ -510,6 +553,21 @@ function createAvatarCard(avatar, index) {
     `;
   }
 
+  // Action buttons (编辑模式，已上传图片时显示)
+  let actionButtonsHtml = '';
+  if (editorMode && avatar.photo) {
+    actionButtonsHtml = `
+      <div class="avatar-action-buttons">
+        <button class="btn-avatar-action btn-avatar-reupload" onclick="event.stopPropagation(); uploadAvatarPhoto(${index})">
+          <span>📤</span> 重新上传
+        </button>
+        <button class="btn-avatar-action btn-avatar-delete" onclick="event.stopPropagation(); deleteAvatarPhoto(${index})">
+          <span>🗑️</span> 删除
+        </button>
+      </div>
+    `;
+  }
+
   card.innerHTML = `
     <div class="avatar-image-wrapper">
       ${avatarContent}
@@ -517,6 +575,7 @@ function createAvatarCard(avatar, index) {
     ${nameHtml}
     ${remarkHtml}
     ${scaleHtml}
+    ${actionButtonsHtml}
   `;
 
   // 编辑模式：添加图片拖动和缩放功能
@@ -530,12 +589,17 @@ function createAvatarCard(avatar, index) {
 
   // Add click handler
   card.addEventListener('click', (e) => {
-    // Don't trigger if clicking on input/textarea/range in editor mode
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    // Don't trigger if clicking on input/textarea/range/button in editor mode
+    if (e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.tagName === 'BUTTON' ||
+        e.target.closest('button')) return;
 
     if (editorMode) {
-      // 编辑模式：点击上传图片
-      uploadAvatarPhoto(index);
+      // 编辑模式：没有图片时点击上传，有图片时点击不操作（只拖拽）
+      if (!avatar.photo) {
+        uploadAvatarPhoto(index);
+      }
     } else {
       // 预览模式：点击处理交互
       handleAvatarClick(avatar, card);

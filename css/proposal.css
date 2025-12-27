@@ -357,6 +357,67 @@
   border: 1px dashed rgba(255, 107, 157, 0.5);
 }
 
+/* ========== Avatar Action Buttons（操作按钮） ========== */
+.avatar-action-buttons {
+  position: absolute;
+  bottom: -135px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 220%;
+}
+
+.avatar-card.center .avatar-action-buttons {
+  bottom: -155px;
+  width: 260%;
+}
+
+.btn-avatar-action {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.btn-avatar-reupload {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+}
+
+.btn-avatar-reupload:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+}
+
+.btn-avatar-reupload:active {
+  transform: translateY(0);
+}
+
+.btn-avatar-delete {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 107, 157, 0.3);
+}
+
+.btn-avatar-delete:hover {
+  background: rgba(255, 107, 157, 0.1);
+  color: var(--primary-color);
+}
+
+.btn-avatar-delete:active {
+  background: rgba(255, 107, 157, 0.2);
+}
+
 .avatar-card.center .avatar-scale-control {
   bottom: -110px;
   width: 240%;
@@ -589,6 +650,16 @@
   .avatar-card.center .avatar-scale-control {
     width: 260%;
     bottom: -120px;
+  }
+
+  .avatar-action-buttons {
+    bottom: -145px;
+    width: 240%;
+  }
+
+  .avatar-card.center .avatar-action-buttons {
+    bottom: -170px;
+    width: 280%;
   }
 }
 
