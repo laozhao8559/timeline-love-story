@@ -575,7 +575,7 @@ function addFutureNode() {
 
   // 创建新节点
   const newNode = document.createElement('article');
-  newNode.className = 'timeline-node future-node';
+  newNode.className = 'timeline-node future-node future-node-enter';
   newNode.innerHTML = `
     <div class="timeline-date">未来</div>
     <div class="timeline-content">
@@ -601,8 +601,10 @@ function addFutureNode() {
 
   container.appendChild(newNode);
 
-  // 淡入动画
-  setTimeout(() => newNode.classList.add('animate-in'), 50);
+  // 触发进入动画
+  setTimeout(() => {
+    newNode.classList.add('future-node-visible');
+  }, 100);
 
   // 滚动到新节点
   setTimeout(() => {
