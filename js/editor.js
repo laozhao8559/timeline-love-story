@@ -1487,52 +1487,83 @@ async function estimateTotalSize(data) {
 
 /**
  * 合并所有 CSS 文件
- * 从已加载的样式表中读取，兼容 file:// 协议
+ * 使用 fetch 直接读取 CSS 文件内容
  */
 async function combineCSSFiles() {
   try {
-    // 尝试从 document.styleSheets 读取已加载的 CSS
-    const cssContents = [];
+    console.log('[CSS Export] 开始读取 CSS 文件...');
 
-    for (const sheet of document.styleSheets) {
-      try {
-        if (sheet.cssRules) {
-          let rules = '';
-          for (let i = 0; i < sheet.cssRules.length; i++) {
-            rules += sheet.cssRules[i].cssText + '\n';
-          }
-          cssContents.push(rules);
-        }
-      } catch (e) {
-        // 跨域样式表无法读取，尝试其他方法
-        console.warn('无法读取样式表:', sheet.href, e);
-      }
-    }
-
-    if (cssContents.length > 0) {
-      return cssContents.join('\n\n');
-    }
-
-    // 如果无法从样式表读取，尝试 fetch（需要通过 HTTP 服务器访问）
+    // 直接读取所有 CSS 文件
     const cssFiles = [
       'css/normalize.css',
       'css/variables.css',
       'css/layout.css',
       'css/components.css',
       'css/animations.css',
-      'css/proposal.css'
+      'css/proposal.css',
+      'css/main.css'
     ];
 
-    const cssPromises = cssFiles.map(file => fetchCSSFile(file).catch(err => {
-      console.warn(`无法加载 ${file}:`, err);
-      return `/* ${file} - 加载失败 */\n`;
-    }));
-    const cssResults = await Promise.all(cssPromises);
-    return cssResults.join('\n\n');
+    // 并发读取所有 CSS 文件
+    const cssPromises = cssFiles.map(async (file) => {
+      try {
+        const response = await fetch(file);
+        if (!response.ok) {
+          throw new Error(`Failed to load ${file}: ${response.statusText}`);
+        }
+        const content = await response.text();
+        console.log(`[CSS Export] 读取 ${file}: ${content.length} 字符`);
+        return content;
+      } catch (error) {
+        console.error(`[CSS Export] 读取 ${file} 失败:`, error);
+        return `/* ${file} - 加载失败 */\n`;
+      }
+    });
+
+    const cssContents = await Promise.all(cssPromises);
+
+    // 合并所有 CSS
+    let combined = cssContents.join('\n\n');
+
+    // 移除编辑器相关的样式
+    combined = removeEditorStyles(combined);
+
+    console.log(`[CSS Export] 合并完成, 总字符数: ${combined.length}`);
+    console.log('[CSS Export] 前 200 字符:', combined.substring(0, 200));
+
+    return combined;
   } catch (error) {
-    console.error('CSS 合并失败:', error);
-    throw new Error('无法加载样式文件，请通过 HTTP 服务器访问页面（如使用 Live Server）');
+    console.error('[CSS Export] CSS 合并失败:', error);
+    throw new Error('无法加载样式文件: ' + error.message);
   }
+}
+
+/**
+ * 移除编辑器相关的样式
+ */
+function removeEditorStyles(css) {
+  const editorPatterns = [
+    /\/\*\s*===+\s*Editor[\s\S]*?\*+\//g,
+    /\.editor-mode\s*\{[^}]*\}/g,
+    /\.editor-toolbar\s*\{[^}]*\}/g,
+    /\.editor-nav-bar\s*\{[^}]*\}/g,
+    /\.editor-nav-btn\s*\{[^}]*\}/g,
+    /#editor-nav-bar\s*\{[^}]*\}/g,
+    /\.editor-mode-toggle\s*\{[^}]*\}/g,
+    /\.btn-editor-toggle\s*\{[^}]*\}/g,
+    /\.editable\s*\{[^}]*\}/g,
+    /\.content-block-card\s*\{[^}]*\}/g,
+    /\.add-content-block[^{]*\{[^}]*\}/g,
+    /\.block-type-menu[^{]*\{[^}]*\}/g,
+    /\.music-upload-section\s*\{[^}]*\}/g
+  ];
+
+  let cleaned = css;
+  editorPatterns.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '');
+  });
+
+  return cleaned;
 }
 
 /**
