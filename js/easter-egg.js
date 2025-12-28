@@ -1,14 +1,11 @@
 /**
  * 时间轴彩蛋动画 - 终版（四阶段情绪曲线）
- * 触发时机：最后一个节点80%可见 + 停留2秒
+ * 触发时机：滚动到页面底部 + 停留2秒
  * 总时长：8-12秒
  */
 
 // ========== 配置 ==========
 const EASTER_EGG_CONFIG = {
-  // 触发阈值（最后一个节点可见比例）
-  triggerThreshold: 0.8,
-
   // 需要停留的时间（毫秒）
   stayDuration: 2000,
 
@@ -17,23 +14,6 @@ const EASTER_EGG_CONFIG = {
 
   // 阶段1开场文案
   stage1IntroText: '故事还没有结束……',
-
-  // 阶段2：图片每张显示时长（毫秒）- 约0.6秒淡入淡出
-  photoDuration: 600,
-
-  // 阶段2总时长（毫秒）- 4-5秒
-  stage2Duration: 4500,
-
-  // 阶段2：三句文字内容（逐句淡入，保留在屏幕）
-  stage2Words: [
-    '亲爱的老婆：',
-    '是你，让平淡日子有了分量……',
-    '是你，让流逝的时间变得温柔……',
-    '是你，让我从此有了安稳的家……'
-  ],
-
-  // 阶段2：每句文字间隔（毫秒）- 0.6～0.8秒
-  stage2WordInterval: 700,
 
   // 阶段3：文字逐行显示间隔（毫秒）
   line1Delay: 800,
@@ -49,91 +29,48 @@ const EASTER_EGG_CONFIG = {
 
 // 状态管理
 let easterEggTriggered = false;
-let lastNodeStayTimer = null;
+let bottomStayTimer = null;
 let easterEggOverlay = null;
-let backgroundSlideshowInterval = null;
 let isScrollLocked = false;
 
 /**
  * 初始化彩蛋检测
  */
 function initEasterEgg() {
-  console.log('[EasterEgg] 初始化彩蛋检测');
+  console.log('[EasterEgg] 初始化彩蛋检测 - 监听页面滚动');
 
-  // 创建专用的 observer 用于检测最后一个节点
-  const endingObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && entry.intersectionRatio >= EASTER_EGG_CONFIG.triggerThreshold) {
-        if (!easterEggTriggered) {
-          startStayTimer();
-        }
-      } else {
-        cancelStayTimer();
-      }
-    });
-  }, {
-    root: null,
-    rootMargin: '0px',
-    threshold: EASTER_EGG_CONFIG.triggerThreshold
-  });
-
-  // 观察最后一个节点
-  const nodes = document.querySelectorAll('.timeline-node');
-  if (nodes.length > 0) {
-    const lastNode = nodes[nodes.length - 1];
-    endingObserver.observe(lastNode);
-    console.log('[EasterEgg] 已设置观察最后节点');
-  }
-
-  // 同时也观察 ending 元素
-  const ending = document.querySelector('.timeline-ending');
-  if (ending) {
-    endingObserver.observe(ending);
-  }
+  // 监测页面滚动，判断是否到达底部
+  window.addEventListener('scroll', checkScrollToBottom);
 }
 
 /**
- * 开始停留计时
+ * 检查是否滚动到页面底部
  */
-function startStayTimer() {
-  if (lastNodeStayTimer) return;
+function checkScrollToBottom() {
+  if (easterEggTriggered) return;
 
-  console.log('[EasterEgg] 开始停留计时...');
-  lastNodeStayTimer = setTimeout(() => {
-    console.log('[EasterEgg] 停留时间达标，准备触发彩蛋');
-    triggerEasterEgg();
-  }, EASTER_EGG_CONFIG.stayDuration);
-}
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const windowHeight = window.innerHeight;
+  const documentHeight = document.documentElement.scrollHeight;
 
-/**
- * 取消停留计时
- */
-function cancelStayTimer() {
-  if (lastNodeStayTimer) {
-    clearTimeout(lastNodeStayTimer);
-    lastNodeStayTimer = null;
-    console.log('[EasterEgg] 取消停留计时');
+  // 判断是否到达底部（剩余小于50px就算到底）
+  const isAtBottom = (scrollTop + windowHeight) >= (documentHeight - 50);
+
+  if (isAtBottom) {
+    if (!bottomStayTimer) {
+      console.log('[EasterEgg] 到达页面底部，开始计时...');
+      bottomStayTimer = setTimeout(() => {
+        console.log('[EasterEgg] 停留时间达标，准备触发彩蛋');
+        triggerEasterEgg();
+      }, EASTER_EGG_CONFIG.stayDuration);
+    }
+  } else {
+    if (bottomStayTimer) {
+      clearTimeout(bottomStayTimer);
+      bottomStayTimer = null;
+      console.log('[EasterEgg] 离开底部，取消计时');
+    }
   }
-}
-
-/**
- * 获取时间轴中的所有图片
- */
-function getTimelineImages() {
-  const images = [];
-  const nodes = document.querySelectorAll('.timeline-node');
-
-  nodes.forEach(node => {
-    const imgElements = node.querySelectorAll('.timeline-image img');
-    imgElements.forEach(img => {
-      if (img.src) {
-        images.push(img.src);
-      }
-    });
-  });
-
-  console.log(`[EasterEgg] 找到 ${images.length} 张图片用于背景播放`);
-  return images;
 }
 
 /**
@@ -144,6 +81,9 @@ function triggerEasterEgg() {
   easterEggTriggered = true;
 
   console.log('[EasterEgg] 🎉 触发彩蛋动画！');
+
+  // 移除滚动监听
+  window.removeEventListener('scroll', checkScrollToBottom);
 
   // 1. 锁定滚动
   lockScroll();
@@ -188,11 +128,10 @@ function runStage1() {
     timelineContainer.classList.add('easter-egg-stage1');
   }
 
-  // 3. 创建全屏 Overlay，显示开场文案
+  // 3. 创建全屏 Overlay，显示开场文案（无背景图片）
   easterEggOverlay = document.createElement('div');
   easterEggOverlay.className = 'easter-egg-overlay';
   easterEggOverlay.innerHTML = `
-    <div class="easter-egg-background" id="easter-egg-background"></div>
     <div class="easter-egg-content">
       <div class="easter-egg-text-container" id="easter-egg-text-container"></div>
       <button class="easter-egg-continue-btn" id="easter-continue-btn">
@@ -257,22 +196,19 @@ function runStage1() {
 function runStage2() {
   console.log('[EasterEgg] 阶段2：回忆闪回');
 
-  // 获取时间轴中的图片
-  const timelineImages = getTimelineImages();
-
   // 清空开场文案（阶段1的文字）
   const textContainer = document.getElementById('easter-egg-text-container');
   if (textContainer) {
     textContainer.innerHTML = '';
   }
 
-  // 启动背景图片轮播（淡入淡出，每张0.6秒）
-  if (timelineImages.length > 0) {
-    startBackgroundSlideshow(timelineImages);
-  }
-
-  // 逐句显示三句文字（前一句不消失，最终同时存在）
-  const words = EASTER_EGG_CONFIG.stage2Words;
+  // 彩蛋文字内容
+  const words = [
+    '亲爱的老婆：',
+    '是你，让平淡日子有了分量……',
+    '是你，让流逝的时间变得温柔……',
+    '是你，让我从此有了安稳的家……'
+  ];
 
   // 固定位置打字机效果 - 每个字有固定位置，从左到右均匀分布
   function typeWriterFixed(element, text, speed = 300) {
@@ -338,54 +274,10 @@ function runStage2() {
 }
 
 /**
- * 启动背景图片轮播（淡入淡出，每张0.6秒）
- */
-function startBackgroundSlideshow(images) {
-  const backgroundEl = document.getElementById('easter-egg-background');
-  if (!backgroundEl) return;
-
-  // 随机打乱图片顺序
-  const shuffledImages = [...images].sort(() => Math.random() - 0.5);
-  console.log(`[EasterEgg] 图片轮播开始，共 ${shuffledImages.length} 张，每张 600ms`);
-
-  let currentIndex = 0;
-
-  function showNextImage() {
-    if (currentIndex >= shuffledImages.length) {
-      currentIndex = 0; // 循环播放
-    }
-
-    // 创建新图片元素（淡入淡出效果）
-    const newImg = document.createElement('img');
-    newImg.src = shuffledImages[currentIndex];
-    newImg.className = 'background-image crossfade';
-
-    // 清空并添加新图片
-    backgroundEl.innerHTML = '';
-    backgroundEl.appendChild(newImg);
-
-    // 下一张索引
-    currentIndex++;
-  }
-
-  // 显示第一张
-  showNextImage();
-
-  // 定时切换（600ms一张）
-  backgroundSlideshowInterval = setInterval(showNextImage, EASTER_EGG_CONFIG.photoDuration);
-}
-
-/**
  * 💝 阶段 3：终极文字（核心）
  */
 function runStage3() {
   console.log('[EasterEgg] 阶段3：终极文字');
-
-  // 停止背景图片切换（定格在当前图片）
-  if (backgroundSlideshowInterval) {
-    clearInterval(backgroundSlideshowInterval);
-    backgroundSlideshowInterval = null;
-  }
 
   // 阶段3开始时不改变音量，保持在40%（从阶段2延续）
   // 音量将在每句文字显示时精细控制
@@ -396,8 +288,6 @@ function runStage3() {
 
   // 清空阶段2的文字
   textContainer.innerHTML = '';
-
-  // 背景定格在当前图片（不淡出，不清空）
   // 文字叠加在背景图片之上
 
   // 打字机效果函数（阶段3使用更慢的速度）
@@ -510,44 +400,31 @@ function runStage4() {
 function handleContinueClick() {
   console.log('[EasterEgg] 点击继续写下去');
 
-  // 1. 停止背景轮播（如果还在运行）
-  if (backgroundSlideshowInterval) {
-    clearInterval(backgroundSlideshowInterval);
-    backgroundSlideshowInterval = null;
-  }
-
-  // 2. 将时间轴切换到未来节点模式（保持虚化）
+  // 1. 将时间轴切换到未来节点模式（保持虚化）
   const timelineContainer = document.querySelector('.timeline-container');
   if (timelineContainer) {
     timelineContainer.classList.remove('easter-egg-stage1');
     timelineContainer.classList.add('future-node-mode');
   }
 
-  // 3. 恢复音乐到彩蛋结束音量
+  // 2. 恢复音乐到彩蛋结束音量
   if (typeof setSceneVolume === 'function') {
     setSceneVolume('easterEggEnd', 1500);
   }
 
-  // 4. 将 Overlay 改为纯色背景（去掉图片，保持虚化氛围）
-  const backgroundEl = document.getElementById('easter-egg-background');
-  if (backgroundEl) {
-    backgroundEl.style.opacity = '0';
-    backgroundEl.style.transition = 'opacity 1s ease-out';
-  }
-
-  // 隐藏文字容器和按钮
+  // 3. 隐藏文字容器和按钮
   const textContainer = document.getElementById('easter-egg-text-container');
   const continueBtn = document.getElementById('easter-continue-btn');
   if (textContainer) textContainer.style.display = 'none';
   if (continueBtn) continueBtn.style.display = 'none';
 
-  // 5. 解锁滚动
+  // 4. 解锁滚动
   unlockScroll();
 
-  // 6. 添加未来节点
+  // 5. 添加未来节点
   setTimeout(() => addFutureNode(), 300);
 
-  // 7. 未来节点出现后，淡出 Overlay
+  // 6. 未来节点出现后，淡出 Overlay
   setTimeout(() => {
     if (easterEggOverlay) {
       easterEggOverlay.classList.remove('visible');
@@ -622,18 +499,17 @@ function addFutureNode() {
  */
 function resetEasterEgg() {
   easterEggTriggered = false;
-  cancelStayTimer();
+
+  // 清理停留计时器
+  if (bottomStayTimer) {
+    clearTimeout(bottomStayTimer);
+    bottomStayTimer = null;
+  }
 
   // 清理覆盖层
   if (easterEggOverlay) {
     easterEggOverlay.remove();
     easterEggOverlay = null;
-  }
-
-  // 停止轮播
-  if (backgroundSlideshowInterval) {
-    clearInterval(backgroundSlideshowInterval);
-    backgroundSlideshowInterval = null;
   }
 
   // 恢复时间轴样式
@@ -684,25 +560,19 @@ function showBackToTimelineButton() {
 function handleBackToTimelineClick() {
   console.log('[EasterEgg] 点击回到时间轴');
 
-  // 1. 停止背景轮播（如果还在运行）
-  if (backgroundSlideshowInterval) {
-    clearInterval(backgroundSlideshowInterval);
-    backgroundSlideshowInterval = null;
-  }
-
-  // 2. 恢复音乐到普通时间轴音量
+  // 1. 恢复音乐到普通时间轴音量
   if (typeof setSceneVolume === 'function') {
     setSceneVolume('normal', 1500);
   }
 
-  // 3. 恢复时间轴样式
+  // 2. 恢复时间轴样式
   const timelineContainer = document.querySelector('.timeline-container');
   if (timelineContainer) {
     timelineContainer.classList.remove('easter-egg-stage1');
     timelineContainer.classList.remove('future-node-mode');
   }
 
-  // 4. 移除覆盖层
+  // 3. 移除覆盖层
   if (easterEggOverlay) {
     easterEggOverlay.classList.remove('visible');
     setTimeout(() => {
@@ -713,7 +583,7 @@ function handleBackToTimelineClick() {
     }, 500);
   }
 
-  // 5. 隐藏"回到时间轴"按钮
+  // 4. 隐藏"回到时间轴"按钮
   const backBtn = document.getElementById('back-to-timeline-btn');
   if (backBtn) {
     backBtn.classList.remove('visible');
@@ -724,7 +594,7 @@ function handleBackToTimelineClick() {
     }, 300);
   }
 
-  // 6. 解锁滚动
+  // 5. 解锁滚动
   unlockScroll();
 
   // 7. 滚动到时间轴顶部

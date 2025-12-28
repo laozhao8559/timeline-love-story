@@ -1970,11 +1970,12 @@ function createVideoElement(media) {
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('x5-video-player-type', 'h5');
   video.setAttribute('x5-video-player-fullscreen', 'false');
+  video.muted = true; // 默认静音
   video.controls = false;
 
   const playOverlay = document.createElement('div');
   playOverlay.className = 'video-play-overlay';
-  playOverlay.innerHTML = '<span class="play-icon">▶</span>';
+  playOverlay.innerHTML = '<span class="play-icon">▶</span><span class="sound-icon">🔇</span>';
 
   const playHandler = () => {
     video.play();
@@ -1996,6 +1997,34 @@ function createVideoElement(media) {
     playOverlay.style.display = 'flex';
     video.controls = false;
   });
+
+  // 全局音乐控制按钮控制视频声音
+  const musicToggle = document.getElementById('music-toggle');
+  if (musicToggle) {
+    musicToggle.addEventListener('click', () => {
+      setTimeout(() => {
+        const isMusicPlaying = musicToggle.querySelector('.music-icon').textContent === '🔊';
+        video.muted = !isMusicPlaying;
+        updateSoundIcon();
+      }, 100);
+    });
+  }
+
+  function updateSoundIcon() {
+    const soundIcon = playOverlay.querySelector('.sound-icon');
+    if (soundIcon) {
+      soundIcon.textContent = video.muted ? '🔇' : '🔊';
+    }
+  }
+
+  const soundIcon = playOverlay.querySelector('.sound-icon');
+  if (soundIcon) {
+    soundIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      video.muted = !video.muted;
+      updateSoundIcon();
+    });
+  }
 
   wrapper.appendChild(video);
   wrapper.appendChild(playOverlay);
@@ -2337,27 +2366,397 @@ function createConfetti() {
   }
 }
 
+// ========== 彩蛋 ==========
+const EASTER_EGG_CONFIG = {
+  stayDuration: 2000,
+  stage1Duration: 1500,
+  stage1IntroText: '故事还没有结束……',
+  line1Delay: 800,
+  line2Delay: 1000,
+  finalWords: [
+    '这不是一个网页！',
+    '这是我想陪你走完的这一生……',
+    '❤生日快乐，我的爱人❤'
+  ]
+};
+
+let easterEggTriggered = false;
+let bottomStayTimer = null;
+let easterEggOverlay = null;
+
+function initEasterEgg() {
+  // 监测页面滚动，判断是否到达底部
+  window.addEventListener('scroll', checkScrollToBottom);
+}
+
+function checkScrollToBottom() {
+  if (easterEggTriggered) return;
+
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const windowHeight = window.innerHeight;
+  const documentHeight = document.documentElement.scrollHeight;
+
+  // 判断是否到达底部（剩余小于50px就算到底）
+  const isAtBottom = (scrollTop + windowHeight) >= (documentHeight - 50);
+
+  if (isAtBottom) {
+    if (!bottomStayTimer) {
+      bottomStayTimer = setTimeout(() => {
+        triggerEasterEgg();
+      }, EASTER_EGG_CONFIG.stayDuration);
+    }
+  } else {
+    if (bottomStayTimer) {
+      clearTimeout(bottomStayTimer);
+      bottomStayTimer = null;
+    }
+  }
+}
+
+function triggerEasterEgg() {
+  if (easterEggTriggered) return;
+  easterEggTriggered = true;
+
+  // 移除滚动监听
+  window.removeEventListener('scroll', checkScrollToBottom);
+
+  document.body.style.overflow = 'hidden';
+  const timelineContainer = document.querySelector('.timeline-container');
+  if (timelineContainer) {
+    timelineContainer.classList.add('easter-egg-stage1');
+  }
+
+  easterEggOverlay = document.createElement('div');
+  easterEggOverlay.className = 'easter-egg-overlay';
+  easterEggOverlay.innerHTML = \`
+    <div class="easter-egg-content">
+      <div class="easter-egg-text-container" id="easter-egg-text-container"></div>
+      <button class="easter-egg-continue-btn" id="easter-continue-btn">
+        <span class="btn-text">继续写下去</span>
+        <span class="btn-sparkle">✨</span>
+      </button>
+    </div>
+  \`;
+  document.body.appendChild(easterEggOverlay);
+  setTimeout(() => easterEggOverlay.classList.add('visible'), 50);
+
+  setTimeout(() => runStage1Intro(), 100);
+}
+
+function runStage1Intro() {
+  const textContainer = document.getElementById('easter-egg-text-container');
+  if (!textContainer) return;
+
+  const introEl = document.createElement('div');
+  introEl.className = 'easter-egg-intro-text';
+  const text = EASTER_EGG_CONFIG.stage1IntroText;
+  const chars = text.split('');
+  chars.forEach((char, i) => {
+    const span = document.createElement('span');
+    span.textContent = char;
+    span.className = 'intro-char';
+    introEl.appendChild(span);
+  });
+
+  textContainer.appendChild(introEl);
+  setTimeout(() => introEl.classList.add('visible'), 100);
+
+  setTimeout(() => {
+    const charSpans = introEl.querySelectorAll('.intro-char');
+    charSpans.forEach((span, i) => {
+      setTimeout(() => {
+        span.classList.add('jump-wave');
+      }, i * 200);
+    });
+  }, 1000);
+
+  setTimeout(() => {
+    introEl.classList.remove('visible');
+    introEl.classList.add('fading-out');
+    setTimeout(() => {
+      textContainer.innerHTML = '';
+      runStage2();
+    }, 1000);
+  }, 2000);
+}
+
+function runStage2() {
+  const textContainer = document.getElementById('easter-egg-text-container');
+  if (!textContainer) return;
+  textContainer.innerHTML = '';
+
+  // 彩蛋文字内容
+  const words = [
+    '亲爱的老婆：',
+    '是你，让平淡日子有了分量……',
+    '是你，让流逝的时间变得温柔……',
+    '是你，让我从此有了安稳的家……'
+  ];
+
+  function typeWriterFixed(element, text, speed = 300) {
+    const chars = text.split('');
+    const charSpans = [];
+    element.innerHTML = '';
+    chars.forEach((char, i) => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.className = 'char-fixed';
+      span.style.opacity = '0';
+      element.appendChild(span);
+      charSpans.push(span);
+    });
+
+    return new Promise((resolve) => {
+      let i = 0;
+      function showChar() {
+        if (i < charSpans.length) {
+          charSpans[i].style.opacity = '1';
+          charSpans[i].classList.add('char-visible');
+          i++;
+          setTimeout(showChar, speed);
+        } else {
+          resolve();
+        }
+      }
+      showChar();
+    });
+  }
+
+  async function showStage2Line(index) {
+    if (index >= words.length) {
+      setTimeout(() => {
+        runStage3();
+      }, 2000);
+      return;
+    }
+
+    const lineEl = document.createElement('div');
+    lineEl.className = 'easter-egg-stage2-text-line';
+    lineEl.classList.add('visible');
+    textContainer.appendChild(lineEl);
+
+    await typeWriterFixed(lineEl, words[index], 200);
+
+    setTimeout(() => {
+      showStage2Line(index + 1);
+    }, 600);
+  }
+
+  showStage2Line(0);
+}
+
+function runStage3() {
+  const textContainer = document.getElementById('easter-egg-text-container');
+  if (!textContainer) return;
+  textContainer.innerHTML = '';
+
+  function typeWriter(element, text, speed = 300) {
+    let i = 0;
+    return new Promise((resolve) => {
+      function type() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          resolve();
+        }
+      }
+      type();
+    });
+  }
+
+  const words = EASTER_EGG_CONFIG.finalWords;
+
+  async function showLine(index) {
+    if (index >= words.length) {
+      setTimeout(() => {
+        runStage4();
+      }, 2000);
+      return;
+    }
+
+    const lineEl = document.createElement('div');
+    lineEl.className = 'easter-egg-text-line';
+    lineEl.classList.add('visible');
+    textContainer.appendChild(lineEl);
+
+    let speed = 300;
+    if (index === 1) speed = 250;
+    if (index === 2) speed = 350;
+
+    await typeWriter(lineEl, words[index], speed);
+
+    if (index === 2) {
+      const text = lineEl.textContent;
+      lineEl.textContent = '';
+      const chars = text.split('');
+      chars.forEach((char, i) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.className = 'jump-char';
+        span.style.animationDelay = \`\${i * 0.15}s\`;
+        lineEl.appendChild(span);
+      });
+    }
+
+    const nextDelay = index === 0 ? EASTER_EGG_CONFIG.line1Delay : EASTER_EGG_CONFIG.line2Delay;
+    setTimeout(() => {
+      showLine(index + 1);
+    }, nextDelay);
+  }
+
+  showLine(0);
+}
+
+function runStage4() {
+  const continueBtn = document.getElementById('easter-continue-btn');
+  if (continueBtn) {
+    continueBtn.classList.add('visible');
+    continueBtn.addEventListener('click', handleContinueClick);
+  }
+
+  showBackToTimelineButton();
+}
+
+function handleContinueClick() {
+  const timelineContainer = document.querySelector('.timeline-container');
+  if (timelineContainer) {
+    timelineContainer.classList.remove('easter-egg-stage1');
+    timelineContainer.classList.add('future-node-mode');
+  }
+
+  const textContainer = document.getElementById('easter-egg-text-container');
+  const continueBtn = document.getElementById('easter-continue-btn');
+  if (textContainer) textContainer.style.display = 'none';
+  if (continueBtn) continueBtn.style.display = 'none';
+
+  document.body.style.overflow = '';
+
+  setTimeout(() => addFutureNode(), 300);
+
+  setTimeout(() => {
+    if (easterEggOverlay) {
+      easterEggOverlay.classList.remove('visible');
+      setTimeout(() => {
+        if (easterEggOverlay) {
+          easterEggOverlay.remove();
+          easterEggOverlay = null;
+        }
+      }, 1000);
+    }
+  }, 2000);
+}
+
+function addFutureNode() {
+  const container = document.getElementById('timeline-nodes');
+  if (!container) return;
+
+  const ending = container.querySelector('.timeline-ending');
+  if (ending) {
+    ending.style.display = 'none';
+  }
+
+  const newNode = document.createElement('article');
+  newNode.className = 'timeline-node future-node future-node-enter';
+  newNode.innerHTML = \`
+    <div class="timeline-date">未来</div>
+    <div class="timeline-content">
+      <h3 class="timeline-title">未完待续…</h3>
+      <div class="future-node-placeholder">
+        <span class="placeholder-icon">💌</span>
+        <div class="future-poem">
+          <p>这三年，</p>
+          <p>没有惊天动地，</p>
+          <p>却一步一步走得很真。</p>
+          <p class="poem-spacer"></p>
+          <p>谢谢你选择了我，</p>
+          <p>也让我有机会，</p>
+          <p>一直选择你。</p>
+          <p class="poem-spacer"></p>
+          <p>未来的时间轴，</p>
+          <p>我希望，</p>
+          <p>还可以陪你写很久……<span class="heart-decor">❤</span></p>
+        </div>
+      </div>
+    </div>
+  \`;
+
+  container.appendChild(newNode);
+
+  setTimeout(() => {
+    newNode.classList.add('future-node-visible');
+  }, 100);
+
+  setTimeout(() => {
+    newNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+function showBackToTimelineButton() {
+  let backBtn = document.getElementById('back-to-timeline-btn');
+
+  if (!backBtn) {
+    backBtn = document.createElement('button');
+    backBtn.id = 'back-to-timeline-btn';
+    backBtn.className = 'back-to-timeline-btn';
+    backBtn.innerHTML = '<span class="btn-icon">↩</span><span class="btn-text">回到时间轴</span>';
+
+    const musicController = document.querySelector('.music-controller');
+    if (musicController) {
+      musicController.insertBefore(backBtn, musicController.firstChild);
+    }
+
+    backBtn.addEventListener('click', handleBackToTimelineClick);
+  }
+
+  setTimeout(() => {
+    backBtn.classList.add('visible');
+  }, 500);
+}
+
+function handleBackToTimelineClick() {
+  const timelineContainer = document.querySelector('.timeline-container');
+  if (timelineContainer) {
+    timelineContainer.classList.remove('easter-egg-stage1');
+    timelineContainer.classList.remove('future-node-mode');
+  }
+
+  if (easterEggOverlay) {
+    easterEggOverlay.classList.remove('visible');
+    setTimeout(() => {
+      if (easterEggOverlay) {
+        easterEggOverlay.remove();
+        easterEggOverlay = null;
+      }
+    }, 500);
+  }
+
+  const backBtn = document.getElementById('back-to-timeline-btn');
+  if (backBtn) {
+    backBtn.classList.remove('visible');
+    setTimeout(() => {
+      if (backBtn && backBtn.parentNode) {
+        backBtn.remove();
+      }
+    }, 300);
+  }
+
+  document.body.style.overflow = '';
+
+  const timelineNodes = document.getElementById('timeline-nodes');
+  if (timelineNodes) {
+    timelineNodes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 // ========== 初始化 ==========
 function init() {
   initProposalPage();
   initChoiceButtons();
   initMusicController();
   initTimeline();
-
-  // 绑定编辑器工具栏按钮事件
-  const btnExportHtml = document.getElementById('btn-export-html');
-  const btnExport = document.getElementById('btn-export');
-  const btnImport = document.getElementById('btn-import');
-  const btnClear = document.getElementById('btn-clear');
-  const btnReset = document.getElementById('btn-reset');
-  const btnSaveImages = document.getElementById('btn-save-images');
-
-  if (btnExportHtml) btnExportHtml.addEventListener('click', exportStandaloneHTML);
-  if (btnExport) btnExport.addEventListener('click', exportData);
-  if (btnImport) btnImport.addEventListener('click', importData);
-  if (btnClear) btnClear.addEventListener('click', clearData);
-  if (btnReset) btnReset.addEventListener('click', resetData);
-  if (btnSaveImages) btnSaveImages.addEventListener('click', saveImagesToCode);
+  initEasterEgg();
 
   setTimeout(() => {
     transitionToPage('choice');

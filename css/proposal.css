@@ -54,17 +54,41 @@
 
 /* ========== 扫光效果层（伪元素） ========== */
 .proposal-title::before {
-  content: attr(data-text); /* 使用 data-text 属性内容 */
+  content: '';
   position: absolute;
-  left: 0;
+  left: -100%;
   top: 0;
-  width: 100%;
+  width: 50%;
+  height: 100%;
+  z-index: 1;
+
+  /* 彩色渐变光带 - 使用白色高光扫过 */
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+
+  /* 扫光动画：3秒一次 */
+  animation: shimmerText 3s linear infinite;
+
+  /* 混合模式：让光带叠加在原文字上 */
+  mix-blend-mode: overlay;
+}
+
+.proposal-title::after {
+  content: '';
+  position: absolute;
+  left: -100%;
+  top: 0;
+  width: 50%;
   height: 100%;
   z-index: 1;
 
   /* 彩色渐变光带 */
   background: linear-gradient(
-    to right,
+    90deg,
     transparent 0%,
     transparent 35%,
     rgba(255, 0, 0, 0.3) 40%,      /* 红色 */
@@ -78,18 +102,9 @@
     transparent 100%
   );
 
-  /* 背景裁剪到文字 */
-  -webkit-background-clip: text;
-  background-clip: text;
-
-  /* 文字透明，只显示光带 */
-  -webkit-text-fill-color: transparent;
-
-  /* 背景大小 */
-  background-size: 200% 100%;
-
-  /* 扫光动画：6秒，慢速移动 */
-  animation: shimmer 6s linear infinite;
+  /* 扫光动画：6秒一次 */
+  animation: shimmerText 6s linear infinite;
+  animation-delay: 1.5s;
 
   /* 混合模式：让光带叠加在原文字上 */
   mix-blend-mode: color-dodge;
@@ -102,6 +117,15 @@
   }
   100% {
     background-position: -200% 0; /* 光带移到左侧，循环 */
+  }
+}
+
+@keyframes shimmerText {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
   }
 }
 

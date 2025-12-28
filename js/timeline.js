@@ -319,12 +319,13 @@ function createVideoElement(media) {
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('x5-video-player-type', 'h5');
   video.setAttribute('x5-video-player-fullscreen', 'false');
+  video.muted = true; // 默认静音
   video.controls = false;
 
   // Create play button overlay
   const playOverlay = document.createElement('div');
   playOverlay.className = 'video-play-overlay';
-  playOverlay.innerHTML = '<span class="play-icon">▶</span>';
+  playOverlay.innerHTML = '<span class="play-icon">▶</span><span class="sound-icon">🔇</span>';
 
   // Play handler
   const playHandler = () => {
@@ -345,11 +346,44 @@ function createVideoElement(media) {
     }
   });
 
-  // Reset when video ends
+  // 重置当视频结束时
   video.addEventListener('ended', () => {
     playOverlay.style.display = 'flex';
     video.controls = false;
   });
+
+  // 全局音乐控制按钮控制视频声音
+  const musicToggle = document.getElementById('music-toggle');
+  if (musicToggle) {
+    // 监听音乐按钮点击，同步控制视频静音状态
+    musicToggle.addEventListener('click', () => {
+      setTimeout(() => {
+        const isMusicPlaying = musicToggle.querySelector('.music-icon').textContent === '🔊';
+        // 音乐播放时，视频也取消静音；音乐暂停时，视频也静音
+        video.muted = !isMusicPlaying;
+        // 更新视频播放覆盖层的声音图标
+        updateSoundIcon();
+      }, 100);
+    });
+  }
+
+  // 更新声音图标
+  function updateSoundIcon() {
+    const soundIcon = playOverlay.querySelector('.sound-icon');
+    if (soundIcon) {
+      soundIcon.textContent = video.muted ? '🔇' : '🔊';
+    }
+  }
+
+  // 点击声音图标切换静音状态
+  const soundIcon = playOverlay.querySelector('.sound-icon');
+  if (soundIcon) {
+    soundIcon.addEventListener('click', (e) => {
+      e.stopPropagation(); // 防止触发播放
+      video.muted = !video.muted;
+      updateSoundIcon();
+    });
+  }
 
   wrapper.appendChild(video);
   wrapper.appendChild(playOverlay);
