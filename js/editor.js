@@ -878,8 +878,8 @@ function createEditableEnding() {
   const defaultConfig = {
     message: '路还很长，但我会一直在你身边！',
     signature: '永远爱你的老公',
-    name: '[刘浩]',
-    date: '[农历11月11]'
+    name: '刘浩',
+    date: '2025年农历11月11日'
   };
   const savedConfig = StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig || defaultConfig;
 
@@ -2145,9 +2145,11 @@ document.addEventListener('click', (e) => {
 var bgMusic = null;
 var isMusicPlaying = false;
 var isMuted = true; // 默认静音
+var masterVolumeFactor = 0; // 总音量系数（0=关闭，1=开启）
 var currentVolume = 0;
 var targetVolume = 0;
 var volumeFadeInterval = null;
+var sceneVolume = 0; // 场景实际音量（不乘以系数的原始值）
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -2181,6 +2183,10 @@ function initMusicController() {
 
   // 尝试自动播放（静音）
   attemptAutoplay();
+
+  // 初始化场景音量和总音量系数
+  sceneVolume = 0;
+  masterVolumeFactor = 0;
 
   console.log('[Music] 音乐控制器已初始化');
 }
@@ -2223,26 +2229,71 @@ function toggleMusic() {
   if (!bgMusic) return;
 
   if (isMuted) {
-    // 开启声音：渐入到当前场景音量
+    // 开启声音：masterVolumeFactor 从 0 渐变到 1
     isMuted = false;
-    const targetVol = SCENE_VOLUMES[currentScene] || SCENE_VOLUMES.normal;
-    console.log('[Music] 开启声音，渐入到', targetVol);
-    fadeInMusic(targetVol, 1000);
+    console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
+    animateMasterVolumeFactor(1, 1000);
   } else {
-    // 关闭声音：渐出到0
+    // 关闭声音：masterVolumeFactor 从 1 渐变到 0
     isMuted = true;
-    console.log('[Music] 关闭声音，渐出');
-    fadeOutMusic(800);
+    console.log('[Music] 关闭声音，masterVolumeFactor 1 → 0');
+    animateMasterVolumeFactor(0, 800);
   }
 
   updateMusicUI();
+}
+
+/**
+ * 动画改变总音量系数
+ */
+function animateMasterVolumeFactor(targetFactor, duration = 1000) {
+  if (!bgMusic) return;
+
+  const startFactor = masterVolumeFactor;
+  const startTime = Date.now();
+
+  // 清除之前的渐变
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(\`[Music] masterVolumeFactor: \${startFactor} → \${targetFactor} (\${duration}ms)\`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // 使用 easeOutCubic 缓动
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+    masterVolumeFactor = startFactor + (targetFactor - startFactor) * easedProgress;
+
+    // 应用新系数到当前场景音量
+    applyVolume();
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+  }, 16); // 60fps
+}
+
+/**
+ * 应用音量：场景音量 × 总音量系数
+ */
+function applyVolume() {
+  if (!bgMusic) return;
+
+  const finalVolume = sceneVolume * masterVolumeFactor;
+  bgMusic.volume = finalVolume;
+  currentVolume = finalVolume;
+  console.log(\`[Music] 应用音量: sceneVolume=\${sceneVolume.toFixed(2)} × factor=\${masterVolumeFactor.toFixed(2)} = \${finalVolume.toFixed(2)}\`);
 }
 
 function fadeInMusic(targetVol, duration = 1000) {
   if (!bgMusic) return;
 
   targetVolume = Math.min(targetVol, 1);
-  const startVolume = bgMusic.volume;
+  const startVolume = sceneVolume;
   const startTime = Date.now();
 
   // 清除之前的渐变
@@ -2258,9 +2309,10 @@ function fadeInMusic(targetVol, duration = 1000) {
 
     // 使用 easeOutCubic 缓动
     const easedProgress = 1 - Math.pow(1 - progress, 3);
-    currentVolume = startVolume + (targetVolume - startVolume) * easedProgress;
+    sceneVolume = startVolume + (targetVolume - startVolume) * easedProgress;
 
-    bgMusic.volume = currentVolume;
+    // 应用音量（自动乘以 masterVolumeFactor）
+    applyVolume();
 
     if (progress >= 1) {
       clearInterval(volumeFadeInterval);
@@ -2272,7 +2324,7 @@ function fadeInMusic(targetVol, duration = 1000) {
 function fadeOutMusic(duration = 800, callback) {
   if (!bgMusic) return;
 
-  const startVolume = bgMusic.volume;
+  const startVolume = sceneVolume;
   const startTime = Date.now();
 
   if (volumeFadeInterval) {
@@ -2285,8 +2337,10 @@ function fadeOutMusic(duration = 800, callback) {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
-    currentVolume = startVolume * (1 - progress);
-    bgMusic.volume = currentVolume;
+    sceneVolume = startVolume * (1 - progress);
+
+    // 应用音量（自动乘以 masterVolumeFactor）
+    applyVolume();
 
     if (progress >= 1) {
       clearInterval(volumeFadeInterval);
@@ -2298,6 +2352,7 @@ function fadeOutMusic(duration = 800, callback) {
 
 /**
  * 设置场景音量（平滑过渡）
+ * 场景音量独立变化，不受静音状态影响
  */
 function setSceneVolume(scene, duration = 1000) {
   if (!bgMusic) return;
@@ -2305,21 +2360,15 @@ function setSceneVolume(scene, duration = 1000) {
   // 更新当前场景
   currentScene = scene;
 
-  // 如果静音状态，只记录场景，不改变音量
-  if (isMuted) {
-    console.log(\`[Music] 静音中，仅更新场景: \${scene}\`);
-    return;
-  }
-
   const targetVol = SCENE_VOLUMES[scene] || SCENE_VOLUMES.normal;
-  const startVolume = bgMusic.volume;
+  const startVolume = sceneVolume;
   const startTime = Date.now();
 
   if (volumeFadeInterval) {
     clearInterval(volumeFadeInterval);
   }
 
-  console.log(\`[Music] 场景音量: \${startVolume.toFixed(2)} → \${targetVol.toFixed(2)} (\${scene})\`);
+  console.log(\`[Music] 场景音量: \${startVolume.toFixed(2)} → \${targetVol.toFixed(2)} (\${scene}), factor=\${masterVolumeFactor.toFixed(2)}\`);
 
   volumeFadeInterval = setInterval(() => {
     const elapsed = Date.now() - startTime;
@@ -2330,8 +2379,10 @@ function setSceneVolume(scene, duration = 1000) {
       ? 2 * progress * progress
       : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-    currentVolume = startVolume + (targetVol - startVolume) * easedProgress;
-    bgMusic.volume = currentVolume;
+    sceneVolume = startVolume + (targetVol - startVolume) * easedProgress;
+
+    // 应用音量（自动乘以 masterVolumeFactor）
+    applyVolume();
 
     if (progress >= 1) {
       clearInterval(volumeFadeInterval);
@@ -2347,7 +2398,7 @@ function setVolumeDirect(volume, duration = 1000) {
   if (!bgMusic) return;
 
   const targetVol = Math.min(Math.max(volume, 0), 1);
-  const startVolume = bgMusic.volume;
+  const startVolume = sceneVolume;
   const startTime = Date.now();
 
   if (volumeFadeInterval) {
@@ -2365,8 +2416,10 @@ function setVolumeDirect(volume, duration = 1000) {
       ? 2 * progress * progress
       : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-    currentVolume = startVolume + (targetVol - startVolume) * easedProgress;
-    bgMusic.volume = currentVolume;
+    sceneVolume = startVolume + (targetVol - startVolume) * easedProgress;
+
+    // 应用音量（自动乘以 masterVolumeFactor）
+    applyVolume();
 
     if (progress >= 1) {
       clearInterval(volumeFadeInterval);

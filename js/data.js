@@ -170,8 +170,8 @@ const standaloneBlocks = [
 const endingConfig = {
   message: '路还很长，但我会一直在你身边！',
   signature: '永远爱你的老公',
-  name: '[刘浩]',  // TODO: Replace with your name
-  date: '[农历11月11]'   // TODO: Replace with her birthday
+  name: '刘浩',
+  date: '2025年农历11月11日'
 };
 
 // Make endingConfig available globally for editor.js
