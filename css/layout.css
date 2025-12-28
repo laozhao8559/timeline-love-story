@@ -77,12 +77,13 @@
 }
 
 .choice-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   color: var(--primary-color);
   margin-bottom: var(--spacing-sm);
 }
 
 .choice-subtitle {
+  font-size: var(--font-size-xl);
   color: var(--text-secondary);
   margin-bottom: var(--spacing-xl);
 }
