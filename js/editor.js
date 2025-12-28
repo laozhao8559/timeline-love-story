@@ -3166,15 +3166,16 @@ ${css}
     <div class="confetti-container" id="confetti-container"></div>
   </div>
 
+  <!-- 音乐控制器（放在 body 下，确保 z-index 正确工作） -->
+  ${hasMusic ? `
+  <div id="music-controller" class="music-controller">
+    <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
+      <span class="music-icon">🎵</span>
+    </button>
+  </div>` : ''}
+
   <!-- Timeline Page -->
   <div id="timeline-page" class="page hidden">
-    ${hasMusic ? `
-    <div id="music-controller" class="music-controller">
-      <button id="music-toggle" class="music-toggle" aria-label="音乐开关">
-        <span class="music-icon">🎵</span>
-      </button>
-    </div>` : ''}
-
     <div class="timeline-container">
       <header class="timeline-header">
         <h1>我们的故事</h1>
