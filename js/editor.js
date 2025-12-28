@@ -2641,8 +2641,33 @@ let easterEggOverlay = null;
 function initEasterEgg() {
   console.log('[EasterEgg] 初始化彩蛋检测 - 监听页面滚动');
 
+  // 记录初始页面尺寸，用于调试
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const windowHeight = window.innerHeight;
+  const documentHeight = document.documentElement.scrollHeight;
+  const distanceToBottom = documentHeight - (scrollTop + windowHeight);
+
+  console.log('[EasterEgg] 页面初始状态:', {
+    scrollTop,
+    windowHeight,
+    documentHeight,
+    distanceToBottom,
+    isScrollable: distanceToBottom > 0,
+    isAlreadyAtBottom: distanceToBottom < 50
+  });
+
   // 监测页面滚动，判断是否到达底部
-  window.addEventListener('scroll', checkScrollToBottom);
+  window.addEventListener('scroll', checkScrollToBottom, { passive: true });
+  console.log('[EasterEgg] ✅ 滚动监听已添加');
+
+  // 如果页面已经在底部（没有滚动空间），直接触发检测
+  setTimeout(() => {
+    const currentDistance = document.documentElement.scrollHeight - (window.pageYOffset + window.innerHeight);
+    if (currentDistance < 50) {
+      console.log('[EasterEgg] 页面初始已在底部，手动触发检测');
+      checkScrollToBottom();
+    }
+  }, 100);
 }
 
 function checkScrollToBottom() {
@@ -2651,15 +2676,25 @@ function checkScrollToBottom() {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const windowHeight = window.innerHeight;
   const documentHeight = document.documentElement.scrollHeight;
+  const distanceToBottom = documentHeight - (scrollTop + windowHeight);
+
+  // 每次滚动都输出日志，方便调试
+  console.log('[EasterEgg] 滚动检测:', {
+    scrollTop,
+    windowHeight,
+    documentHeight,
+    distanceToBottom,
+    isAtBottom: distanceToBottom < 50
+  });
 
   // 判断是否到达底部（剩余小于50px就算到底）
-  const isAtBottom = (scrollTop + windowHeight) >= (documentHeight - 50);
+  const isAtBottom = distanceToBottom < 50;
 
   if (isAtBottom) {
     if (!bottomStayTimer) {
-      console.log('[EasterEgg] 到达页面底部，开始计时...');
+      console.log('[EasterEgg] ✅ 到达页面底部，开始计时 2 秒...');
       bottomStayTimer = setTimeout(() => {
-        console.log('[EasterEgg] 停留时间达标，准备触发彩蛋');
+        console.log('[EasterEgg] 🎉 停留时间达标，准备触发彩蛋');
         triggerEasterEgg();
       }, EASTER_EGG_CONFIG.stayDuration);
     }
