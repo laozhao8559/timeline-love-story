@@ -6,6 +6,8 @@
   top: 20px;
   right: 20px;
   z-index: 10001; /* 高于彩蛋覆盖层(10000)，确保始终可点击 */
+  display: flex;
+  gap: 10px;
 }
 
 .music-toggle {
@@ -67,6 +69,50 @@
 .music-icon {
   display: block;
   position: relative;
+}
+
+/* ========== Back to Timeline Button ========== */
+.back-to-timeline-btn {
+  width: auto;
+  min-width: 50px;
+  height: 50px;
+  padding: 0 16px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #FF6B9D;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FF6B9D;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+}
+
+.back-to-timeline-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.back-to-timeline-btn:hover {
+  background: rgba(255, 107, 157, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+}
+
+.back-to-timeline-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.back-to-timeline-btn .btn-icon {
+  font-size: 18px;
 }
 
 /* ========== Lightbox ========== */

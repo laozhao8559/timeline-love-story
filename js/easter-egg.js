@@ -499,6 +499,9 @@ function runStage4() {
 
   // 绑定按钮事件
   continueBtn?.addEventListener('click', handleContinueClick);
+
+  // 显示"回到时间轴"按钮
+  showBackToTimelineButton();
 }
 
 /**
@@ -643,6 +646,92 @@ function resetEasterEgg() {
   unlockScroll();
 
   console.log('[EasterEgg] 已重置彩蛋状态');
+}
+
+/**
+ * 显示"回到时间轴"按钮
+ */
+function showBackToTimelineButton() {
+  // 检查按钮是否已存在
+  let backBtn = document.getElementById('back-to-timeline-btn');
+
+  if (!backBtn) {
+    // 创建按钮
+    backBtn = document.createElement('button');
+    backBtn.id = 'back-to-timeline-btn';
+    backBtn.className = 'back-to-timeline-btn';
+    backBtn.innerHTML = '<span class="btn-icon">↩</span><span class="btn-text">回到时间轴</span>';
+
+    // 添加到 music-controller 容器中
+    const musicController = document.querySelector('.music-controller');
+    if (musicController) {
+      musicController.insertBefore(backBtn, musicController.firstChild);
+    }
+
+    // 绑定点击事件
+    backBtn.addEventListener('click', handleBackToTimelineClick);
+  }
+
+  // 延迟显示，确保动画流畅
+  setTimeout(() => {
+    backBtn.classList.add('visible');
+  }, 500);
+}
+
+/**
+ * 处理"回到时间轴"按钮点击
+ */
+function handleBackToTimelineClick() {
+  console.log('[EasterEgg] 点击回到时间轴');
+
+  // 1. 停止背景轮播（如果还在运行）
+  if (backgroundSlideshowInterval) {
+    clearInterval(backgroundSlideshowInterval);
+    backgroundSlideshowInterval = null;
+  }
+
+  // 2. 恢复音乐到普通时间轴音量
+  if (typeof setSceneVolume === 'function') {
+    setSceneVolume('normal', 1500);
+  }
+
+  // 3. 恢复时间轴样式
+  const timelineContainer = document.querySelector('.timeline-container');
+  if (timelineContainer) {
+    timelineContainer.classList.remove('easter-egg-stage1');
+    timelineContainer.classList.remove('future-node-mode');
+  }
+
+  // 4. 移除覆盖层
+  if (easterEggOverlay) {
+    easterEggOverlay.classList.remove('visible');
+    setTimeout(() => {
+      if (easterEggOverlay) {
+        easterEggOverlay.remove();
+        easterEggOverlay = null;
+      }
+    }, 500);
+  }
+
+  // 5. 隐藏"回到时间轴"按钮
+  const backBtn = document.getElementById('back-to-timeline-btn');
+  if (backBtn) {
+    backBtn.classList.remove('visible');
+    setTimeout(() => {
+      if (backBtn && backBtn.parentNode) {
+        backBtn.remove();
+      }
+    }, 300);
+  }
+
+  // 6. 解锁滚动
+  unlockScroll();
+
+  // 7. 滚动到时间轴顶部
+  const timelineNodes = document.getElementById('timeline-nodes');
+  if (timelineNodes) {
+    timelineNodes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // 将配置暴露到全局，方便编辑
