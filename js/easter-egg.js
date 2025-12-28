@@ -505,7 +505,8 @@ function addFutureNode() {
     newNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 300);
 
-  showToast('故事还在继续…', 'success');
+  // 注意： showToast 在导出的独立 HTML 中不存在，所以移除这个调用
+  // showToast('故事还在继续…', 'success');
 }
 
 /**
@@ -552,10 +553,13 @@ function showBackToTimelineButton() {
     backBtn.className = 'back-to-timeline-btn';
     backBtn.innerHTML = '<span class="btn-icon">↩</span><span class="btn-text">回到时间轴</span>';
 
-    // 添加到 music-controller 容器中
+    // 优先添加到 music-controller 容器中，如果没有则添加到 body
     const musicController = document.querySelector('.music-controller');
     if (musicController) {
       musicController.insertBefore(backBtn, musicController.firstChild);
+    } else {
+      // 如果没有音乐控制器，添加到 body 并设置固定定位
+      document.body.appendChild(backBtn);
     }
 
     // 绑定点击事件

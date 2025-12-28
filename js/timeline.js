@@ -352,21 +352,6 @@ function createVideoElement(media) {
     video.controls = false;
   });
 
-  // 全局音乐控制按钮控制视频声音
-  const musicToggle = document.getElementById('music-toggle');
-  if (musicToggle) {
-    // 监听音乐按钮点击，同步控制视频静音状态
-    musicToggle.addEventListener('click', () => {
-      setTimeout(() => {
-        const isMusicPlaying = musicToggle.querySelector('.music-icon').textContent === '🔊';
-        // 音乐播放时，视频也取消静音；音乐暂停时，视频也静音
-        video.muted = !isMusicPlaying;
-        // 更新视频播放覆盖层的声音图标
-        updateSoundIcon();
-      }, 100);
-    });
-  }
-
   // 更新声音图标
   function updateSoundIcon() {
     const soundIcon = playOverlay.querySelector('.sound-icon');

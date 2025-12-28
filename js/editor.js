@@ -1294,6 +1294,18 @@ function formatFileSize(bytes) {
 }
 
 /**
+ * 将 Blob 转换为 Base64
+ */
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * Update storage indicator
  * 显示 localStorage 和 IndexedDB 的使用情况
  */
@@ -1473,11 +1485,34 @@ async function collectAllDataForExport() {
 
     console.log('[Export] avatarData 处理完成:', avatarData);
 
+    // 获取音乐数据（如果没有用户上传的音乐，读取默认音乐）
+    let musicData = StorageManager.load(STORAGE_KEYS.MUSIC_DATA);
+    if (!musicData) {
+      console.log('[Export] 没有用户上传的音乐，读取默认音乐文件');
+      try {
+        const defaultMusicResponse = await fetch('js/assets/music/bg-music.mp3');
+        if (defaultMusicResponse.ok) {
+          const defaultMusicBlob = await defaultMusicResponse.blob();
+          const defaultMusicBase64 = await blobToBase64(defaultMusicBlob);
+          musicData = {
+            name: 'One Summer\'s Day.mp3',
+            size: formatFileSize(defaultMusicBlob.size),
+            data: defaultMusicBase64
+          };
+          console.log('[Export] 默认音乐读取成功');
+        } else {
+          console.warn('[Export] 无法读取默认音乐文件');
+        }
+      } catch (err) {
+        console.warn('[Export] 读取默认音乐失败:', err);
+      }
+    }
+
     const result = {
       timelineData: StorageManager.load(STORAGE_KEYS.TIMELINE_DATA) || cloneTimelineData(),
       standaloneBlocks: StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS) || [],
       endingConfig: StorageManager.load(STORAGE_KEYS.ENDING_CONFIG) || window.endingConfig,
-      musicData: StorageManager.load(STORAGE_KEYS.MUSIC_DATA) || null,
+      musicData: musicData,  // 可能是用户上传的音乐，或默认音乐
       avatarData: avatarData,  // 完整的头像数据
       metadata: {
         exportDate: new Date().toISOString(),
@@ -2007,18 +2042,6 @@ function createVideoElement(media) {
     playOverlay.style.display = 'flex';
     video.controls = false;
   });
-
-  // 全局音乐控制按钮控制视频声音
-  const musicToggle = document.getElementById('music-toggle');
-  if (musicToggle) {
-    musicToggle.addEventListener('click', () => {
-      setTimeout(() => {
-        const isMusicPlaying = musicToggle.querySelector('.music-icon').textContent === '🔊';
-        video.muted = !isMusicPlaying;
-        updateSoundIcon();
-      }, 100);
-    });
-  }
 
   function updateSoundIcon() {
     const soundIcon = playOverlay.querySelector('.sound-icon');
@@ -3086,6 +3109,9 @@ async function fetchTextFile(path) {
  */
 function generateHTML(data, css, js) {
   const hasMusic = data.musicData && data.musicData.data;
+
+  console.log('[Export] generateHTML - hasMusic:', hasMusic);
+  console.log('[Export] generateHTML - musicData:', data.musicData);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
