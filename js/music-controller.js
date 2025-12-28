@@ -69,8 +69,8 @@ function initMusicController(musicSrc) {
     attemptAutoplay();
   }
 
-  // 初始化场景音量和总音量系数
-  sceneVolume = 0;
+  // 初始化场景音量为默认场景音量（normal），总音量系数为0
+  sceneVolume = SCENE_VOLUMES.normal;
   masterVolumeFactor = 0;
 
   console.log('[Music] 音乐控制器已初始化，文件:', musicSrc);
