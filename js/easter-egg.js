@@ -7,7 +7,7 @@
 // ========== 配置 ==========
 const EASTER_EGG_CONFIG = {
   // 需要停留的时间（毫秒）
-  stayDuration: 2000,
+  stayDuration: 3000,
 
   // 阶段1时长（毫秒）
   stage1Duration: 1500,
@@ -37,75 +37,54 @@ let isScrollLocked = false;
  * 初始化彩蛋检测
  */
 function initEasterEgg() {
-  console.log('[EasterEgg] 初始化彩蛋检测 - 监听页面滚动');
+  console.log('[EasterEgg] 初始化彩蛋检测 - 使用 IntersectionObserver');
 
-  // 记录初始页面尺寸，用于调试
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const windowHeight = window.innerHeight;
-  const documentHeight = document.documentElement.scrollHeight;
-  const distanceToBottom = documentHeight - (scrollTop + windowHeight);
-
-  console.log('[EasterEgg] 页面初始状态:', {
-    scrollTop,
-    windowHeight,
-    documentHeight,
-    distanceToBottom,
-    isScrollable: distanceToBottom > 0,
-    isAlreadyAtBottom: distanceToBottom < 50
-  });
-
-  // 监测页面滚动，判断是否到达底部
-  window.addEventListener('scroll', checkScrollToBottom, { passive: true });
-  console.log('[EasterEgg] ✅ 滚动监听已添加');
-
-  // 如果页面已经在底部（没有滚动空间），直接触发检测
-  setTimeout(() => {
-    const currentDistance = document.documentElement.scrollHeight - (window.pageYOffset + window.innerHeight);
-    if (currentDistance < 50) {
-      console.log('[EasterEgg] 页面初始已在底部，手动触发检测');
-      checkScrollToBottom();
-    }
-  }, 100);
+  // 直接调用检测函数（内部会使用 IntersectionObserver）
+  checkScrollToBottom();
 }
 
 /**
  * 检查是否滚动到页面底部
+ * 使用 IntersectionObserver 检测 footer 元素是否进入视口
  */
 function checkScrollToBottom() {
   if (easterEggTriggered) return;
 
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const windowHeight = window.innerHeight;
-  const documentHeight = document.documentElement.scrollHeight;
-  const distanceToBottom = documentHeight - (scrollTop + windowHeight);
+  // 查找 footer 元素
+  const footer = document.querySelector('.timeline-footer');
+  if (!footer) {
+    console.log('[EasterEgg] 未找到 footer 元素');
+    return;
+  }
 
-  // 每次滚动都输出日志，方便调试
-  console.log('[EasterEgg] 滚动检测:', {
-    scrollTop,
-    windowHeight,
-    documentHeight,
-    distanceToBottom,
-    isAtBottom: distanceToBottom < 50
+  // 使用 IntersectionObserver 检测 footer 可见性
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // footer 进入视口
+        if (!bottomStayTimer) {
+          console.log('[EasterEgg] ✅ "爱你每一天"文字可见，开始计时 3 秒...');
+          bottomStayTimer = setTimeout(() => {
+            console.log('[EasterEgg] 🎉 停留时间达标，准备触发彩蛋');
+            triggerEasterEgg();
+            observer.disconnect(); // 停止观察
+          }, EASTER_EGG_CONFIG.stayDuration);
+        }
+      } else {
+        // footer 离开视口
+        if (bottomStayTimer) {
+          clearTimeout(bottomStayTimer);
+          bottomStayTimer = null;
+          console.log('[EasterEgg] "爱你每一天"文字离开视口，取消计时');
+        }
+      }
+    });
+  }, {
+    threshold: 0.1  // footer 至少 10% 可见时触发
   });
 
-  // 判断是否到达底部（剩余小于50px就算到底）
-  const isAtBottom = distanceToBottom < 50;
-
-  if (isAtBottom) {
-    if (!bottomStayTimer) {
-      console.log('[EasterEgg] ✅ 到达页面底部，开始计时 2 秒...');
-      bottomStayTimer = setTimeout(() => {
-        console.log('[EasterEgg] 🎉 停留时间达标，准备触发彩蛋');
-        triggerEasterEgg();
-      }, EASTER_EGG_CONFIG.stayDuration);
-    }
-  } else {
-    if (bottomStayTimer) {
-      clearTimeout(bottomStayTimer);
-      bottomStayTimer = null;
-      console.log('[EasterEgg] 离开底部，取消计时');
-    }
-  }
+  observer.observe(footer);
+  console.log('[EasterEgg] ✅ 开始观察 footer 元素可见性');
 }
 
 /**
