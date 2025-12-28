@@ -126,7 +126,8 @@ function getCurrentPageKey() {
 function enterEditMode() {
   // Load saved data or clone default data
   const savedData = StorageManager.load(STORAGE_KEYS.TIMELINE_DATA);
-  editingData = savedData || cloneTimelineData();
+  // 检查 savedData 是否为有效数组（不是 null 且不是空数组）
+  editingData = (savedData && savedData.length > 0) ? savedData : cloneTimelineData();
 
   // Load saved standalone blocks
   const savedBlocks = StorageManager.load(STORAGE_KEYS.STANDALONE_BLOCKS);
@@ -175,7 +176,7 @@ function exitEditMode() {
  * Clone timeline data
  */
 function cloneTimelineData() {
-  return JSON.parse(JSON.stringify(timelineData || []));
+  return JSON.parse(JSON.stringify(window.timelineData || []));
 }
 
 // ========== Render with Edit Controls ==========
@@ -1195,7 +1196,7 @@ function importData() {
  * Clear all data
  */
 function clearAllData() {
-  if (confirm('确定要清除所有编辑数据吗？此操作不可恢复！')) {
+  if (confirm('确定要清除所有编辑数据吗？\n\n此操作将清除：\n- 时间轴内容\n- 独立内容块\n- 结尾配置\n- 编辑器模式状态\n\n但会保留：\n- IndexedDB 中的图片数据')) {
     StorageManager.clearAll();
     location.reload(); // Auto reload after clearing
   }
@@ -1205,7 +1206,7 @@ function clearAllData() {
  * Reset to default
  */
 function resetToDefault() {
-  if (confirm('确定要重置为默认数据吗？所有编辑将丢失！')) {
+  if (confirm('确定要重置为默认数据吗？\n\n注意：\n- 时间轴内容将恢复默认\n- 已上传的图片会保留在 IndexedDB 中')) {
     StorageManager.clearAll();
     location.reload();
   }
@@ -2473,7 +2474,8 @@ async function saveImagesToCode() {
                   const imageId = content.src.replace('indexeddb:', '');
                   const base64 = allIndexedDBImages[imageId];
                   if (base64) {
-                    const key = `node_${nodeIndex}_img_${contentIndex}`;
+                    // 使用 node.id 而非 nodeIndex，确保节点排序后 key 仍然有效
+                    const key = `node_${node.id}_img_${contentIndex}`;
                     imagesData.timeline[key] = base64;
                   }
                 }
@@ -2491,19 +2493,18 @@ async function saveImagesToCode() {
       if (standaloneBlocks) {
         try {
           const blocks = JSON.parse(standaloneBlocks);
-          let standaloneIndex = 0;
           blocks.forEach((block) => {
             if (block.type === 'image' && block.src && block.src.startsWith('indexeddb:')) {
               const imageId = block.src.replace('indexeddb:', '');
               const base64 = allIndexedDBImages[imageId];
               if (base64) {
-                const key = `standalone_${standaloneIndex}`;
+                // 使用 block.id 而非索引，确保稳定性
+                const key = `standalone_${block.id}`;
                 imagesData.timeline[key] = base64;
               }
-              standaloneIndex++;
             }
           });
-          console.log('[saveImagesToCode] 收集到独立内容块图片:', standaloneIndex, '张');
+          console.log('[saveImagesToCode] 收集到独立内容块图片:', Object.keys(blocks).filter(b => b.type === 'image').length, '张');
         } catch (e) {
           console.error('[saveImagesToCode] 解析独立内容块数据失败:', e);
         }

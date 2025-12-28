@@ -73,39 +73,11 @@ function handlePageInit(pageKey) {
           renderTimelineWithEditControls();
         }
       } else {
-        // View mode uses normal timeline
-        const savedData = StorageManager?.load?.('timeline_data');
-        if (savedData) {
-          // Use saved data
-          const container = document.getElementById('timeline-nodes');
-          container.innerHTML = '';
-          savedData.forEach((node, index) => {
-            const nodeEl = createTimelineNode(node, index);
-            container.appendChild(nodeEl);
-          });
-          const endingConfig = StorageManager?.load?.('ending_config') || window.endingConfig;
-          const endingEl = document.createElement('section');
-          endingEl.className = 'timeline-ending';
-          endingEl.innerHTML = `
-            <div class="ending-content">
-              <div class="ending-icon">💕</div>
-              <h2 class="ending-message">${escapeHtml(endingConfig.message)}</h2>
-              <div class="ending-signature">
-                <p>${escapeHtml(endingConfig.signature)}</p>
-                <p class="ending-name">${escapeHtml(endingConfig.name)}</p>
-                <p class="ending-date">${escapeHtml(endingConfig.date)}</p>
-              </div>
-              <div class="ending-hearts">
-                <span>❤</span><span>❤</span><span>❤</span>
-              </div>
-            </div>
-          `;
-          container.appendChild(endingEl);
-        } else {
+        // View mode - always use initTimeline for consistent rendering
+        if (typeof initTimeline === 'function') {
           initTimeline();
         }
       }
-      initScrollAnimations();
 
       // 初始化彩蛋检测（仅在非编辑模式）
       if (!editorMode && typeof initEasterEgg === 'function') {

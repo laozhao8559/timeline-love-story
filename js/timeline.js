@@ -18,9 +18,31 @@ function initTimeline() {
 
   // 优先使用 localStorage 中的编辑数据，如果没有则使用默认数据
   const savedTimelineData = localStorage.getItem('timeline_data');
-  console.log('[initTimeline] localStorage 中的数据:', savedTimelineData);
+  const savedStandaloneBlocks = localStorage.getItem('standalone_blocks');
+  console.log('[initTimeline] localStorage 中的 timeline_data:', savedTimelineData);
+  console.log('[initTimeline] localStorage 中的 standalone_blocks:', savedStandaloneBlocks);
 
-  const dataToRender = savedTimelineData ? JSON.parse(savedTimelineData) : timelineData;
+  // 使用 try-catch 处理可能的 JSON 解析错误
+  let dataToRender = timelineData; // 默认使用 timelineData
+  if (savedTimelineData) {
+    try {
+      dataToRender = JSON.parse(savedTimelineData);
+    } catch (e) {
+      console.error('[initTimeline] 解析 timeline_data 失败，使用默认数据:', e);
+      dataToRender = timelineData;
+    }
+  }
+
+  // 使用保存的独立内容块，如果没有则使用默认的
+  let blocksToRender = standaloneBlocks || [];
+  if (savedStandaloneBlocks) {
+    try {
+      blocksToRender = JSON.parse(savedStandaloneBlocks);
+    } catch (e) {
+      console.error('[initTimeline] 解析 standalone_blocks 失败，使用默认数据:', e);
+      blocksToRender = standaloneBlocks || [];
+    }
+  }
 
   console.log('[initTimeline] 将要渲染的数据:', dataToRender);
   console.log('[initTimeline] 第一个节点完整数据:', dataToRender[0]);
@@ -28,7 +50,7 @@ function initTimeline() {
   console.log('[initTimeline] contents 长度:', dataToRender[0]?.contents?.length);
 
   // 先渲染 insertAfter: -1 的内容块（最前面）
-  const headBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === -1);
+  const headBlocks = blocksToRender.filter(b => b.insertAfter === -1);
   headBlocks.forEach((block, idx) => {
     const blockEl = createStandaloneBlock(block, idx);
     container.appendChild(blockEl);
@@ -41,7 +63,7 @@ function initTimeline() {
     container.appendChild(nodeEl);
 
     // 查找并渲染在当前节点之后的独立内容块
-    const afterBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === index);
+    const afterBlocks = blocksToRender.filter(b => b.insertAfter === index);
     afterBlocks.forEach((block, idx) => {
       const blockEl = createStandaloneBlock(block, idx);
       container.appendChild(blockEl);
@@ -96,7 +118,8 @@ function createStandaloneBlock(block, standaloneIndex = 0) {
         .catch(err => {
           console.error('[createStandaloneBlock] IndexedDB 图片加载失败:', err);
           // 回退：尝试从预置图片加载
-          const preloadKey = `standalone_${standaloneIndex}`;
+          // 使用 block.id 构建 key，与固化逻辑保持一致
+          const preloadKey = `standalone_${block.id}`;
           if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
             img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
             console.log('[createStandaloneBlock] 使用预置图片:', preloadKey);
@@ -225,7 +248,8 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
         .catch(err => {
           console.error('[createContentBlock] IndexedDB 图片加载失败:', err);
           // 回退：尝试从预置图片加载
-          const preloadKey = `node_${nodeId - 1}_img_${contentIndex}`;
+          // 使用 node.id 直接构建 key，与固化逻辑保持一致
+          const preloadKey = `node_${nodeId}_img_${contentIndex}`;
           if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
             img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
             console.log('[createContentBlock] 使用预置图片:', preloadKey);
