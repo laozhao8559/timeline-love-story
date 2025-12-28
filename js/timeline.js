@@ -29,8 +29,8 @@ function initTimeline() {
 
   // 先渲染 insertAfter: -1 的内容块（最前面）
   const headBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === -1);
-  headBlocks.forEach(block => {
-    const blockEl = createStandaloneBlock(block);
+  headBlocks.forEach((block, idx) => {
+    const blockEl = createStandaloneBlock(block, idx);
     container.appendChild(blockEl);
   });
 
@@ -42,8 +42,8 @@ function initTimeline() {
 
     // 查找并渲染在当前节点之后的独立内容块
     const afterBlocks = (standaloneBlocks || []).filter(b => b.insertAfter === index);
-    afterBlocks.forEach(block => {
-      const blockEl = createStandaloneBlock(block);
+    afterBlocks.forEach((block, idx) => {
+      const blockEl = createStandaloneBlock(block, idx);
       container.appendChild(blockEl);
     });
   });
@@ -63,8 +63,10 @@ function initTimeline() {
 /**
  * Create a standalone content block element
  * 独立内容块 - 不依附于任何节点
+ * @param {Object} block - 独立内容块数据
+ * @param {number} standaloneIndex - 独立内容块的索引（用于预置图片回退）
  */
-function createStandaloneBlock(block) {
+function createStandaloneBlock(block, standaloneIndex = 0) {
   const wrapper = document.createElement('div');
   wrapper.className = 'standalone-block';
   wrapper.dataset.blockId = block.id;
@@ -93,7 +95,14 @@ function createStandaloneBlock(block) {
         })
         .catch(err => {
           console.error('[createStandaloneBlock] IndexedDB 图片加载失败:', err);
-          img.alt = '加载失败: ' + (block.alt || '');
+          // 回退：尝试从预置图片加载
+          const preloadKey = `standalone_${standaloneIndex}`;
+          if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
+            img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
+            console.log('[createStandaloneBlock] 使用预置图片:', preloadKey);
+          } else {
+            img.alt = '加载失败: ' + (block.alt || '');
+          }
         });
     } else {
       img.src = block.src;
@@ -215,7 +224,14 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
         })
         .catch(err => {
           console.error('[createContentBlock] IndexedDB 图片加载失败:', err);
-          img.alt = '加载失败: ' + (contentBlock.alt || '');
+          // 回退：尝试从预置图片加载
+          const preloadKey = `node_${nodeId - 1}_img_${contentIndex}`;
+          if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
+            img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
+            console.log('[createContentBlock] 使用预置图片:', preloadKey);
+          } else {
+            img.alt = '加载失败: ' + (contentBlock.alt || '');
+          }
         });
     } else {
       // 直接使用 src

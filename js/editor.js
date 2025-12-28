@@ -2273,6 +2273,21 @@ function init() {
   initMusicController();
   initTimeline();
 
+  // 绑定编辑器工具栏按钮事件
+  const btnExportHtml = document.getElementById('btn-export-html');
+  const btnExport = document.getElementById('btn-export');
+  const btnImport = document.getElementById('btn-import');
+  const btnClear = document.getElementById('btn-clear');
+  const btnReset = document.getElementById('btn-reset');
+  const btnSaveImages = document.getElementById('btn-save-images');
+
+  if (btnExportHtml) btnExportHtml.addEventListener('click', exportStandaloneHTML);
+  if (btnExport) btnExport.addEventListener('click', exportData);
+  if (btnImport) btnImport.addEventListener('click', importData);
+  if (btnClear) btnClear.addEventListener('click', clearData);
+  if (btnReset) btnReset.addEventListener('click', resetData);
+  if (btnSaveImages) btnSaveImages.addEventListener('click', saveImagesToCode);
+
   setTimeout(() => {
     transitionToPage('choice');
   }, 1500);
@@ -2411,4 +2426,180 @@ function downloadHTML(htmlContent) {
   document.body.removeChild(a);
 
   URL.revokeObjectURL(url);
+}
+
+/**
+ * 固化图片到代码文件
+ * 将当前上传的图片生成为 image-preload.js 文件供下载
+ */
+async function saveImagesToCode() {
+  console.log('[saveImagesToCode] 开始执行...');
+
+  try {
+    showToast('正在收集图片数据...', 'info');
+
+    // 收集的图片数据
+    const imagesData = {
+      avatars: {},
+      timeline: {}
+    };
+
+    // 1. 收集求婚页头像（从 localStorage）
+    const avatarPhotos = localStorage.getItem('avatar_photos');
+    if (avatarPhotos) {
+      try {
+        imagesData.avatars = JSON.parse(avatarPhotos);
+        console.log('[saveImagesToCode] 收集到头像:', Object.keys(imagesData.avatars).length, '个');
+      } catch (e) {
+        console.error('[saveImagesToCode] 解析头像数据失败:', e);
+      }
+    }
+
+    // 2. 收集时间轴图片（从 IndexedDB）
+    if (typeof getAllImagesFromIndexedDB === 'function') {
+      console.log('[saveImagesToCode] 开始从 IndexedDB 收集图片...');
+      const allIndexedDBImages = await getAllImagesFromIndexedDB();
+      console.log('[saveImagesToCode] IndexedDB 中有', Object.keys(allIndexedDBImages).length, '张图片');
+
+      // 从 timeline_data 中提取引用的图片
+      const timelineData = localStorage.getItem('timeline_data');
+      if (timelineData) {
+        try {
+          const nodes = JSON.parse(timelineData);
+          nodes.forEach((node, nodeIndex) => {
+            if (node.contents) {
+              node.contents.forEach((content, contentIndex) => {
+                if (content.type === 'image' && content.src && content.src.startsWith('indexeddb:')) {
+                  const imageId = content.src.replace('indexeddb:', '');
+                  const base64 = allIndexedDBImages[imageId];
+                  if (base64) {
+                    const key = `node_${nodeIndex}_img_${contentIndex}`;
+                    imagesData.timeline[key] = base64;
+                  }
+                }
+              });
+            }
+          });
+          console.log('[saveImagesToCode] 收集到时间轴图片:', Object.keys(imagesData.timeline).length, '张');
+        } catch (e) {
+          console.error('[saveImagesToCode] 解析时间轴数据失败:', e);
+        }
+      }
+
+      // 从 standalone_blocks 中提取引用的图片
+      const standaloneBlocks = localStorage.getItem('standalone_blocks');
+      if (standaloneBlocks) {
+        try {
+          const blocks = JSON.parse(standaloneBlocks);
+          let standaloneIndex = 0;
+          blocks.forEach((block) => {
+            if (block.type === 'image' && block.src && block.src.startsWith('indexeddb:')) {
+              const imageId = block.src.replace('indexeddb:', '');
+              const base64 = allIndexedDBImages[imageId];
+              if (base64) {
+                const key = `standalone_${standaloneIndex}`;
+                imagesData.timeline[key] = base64;
+              }
+              standaloneIndex++;
+            }
+          });
+          console.log('[saveImagesToCode] 收集到独立内容块图片:', standaloneIndex, '张');
+        } catch (e) {
+          console.error('[saveImagesToCode] 解析独立内容块数据失败:', e);
+        }
+      }
+    }
+
+    // 3. 生成 JS 文件内容
+    const jsContent = generateImagePreloadJS(imagesData);
+
+    // 4. 下载文件
+    const blob = new Blob([jsContent], { type: 'text/javascript;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'image-preload.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+    // 5. 显示成功信息
+    const avatarCount = Object.keys(imagesData.avatars).length;
+    const timelineCount = Object.keys(imagesData.timeline).length;
+
+    console.log('[saveImagesToCode] 固化完成:', {
+      avatars: avatarCount,
+      timeline: timelineCount
+    });
+
+    showToast(`✅ 已下载 image-preload.js！包含 ${avatarCount} 个头像 + ${timelineCount} 张图片`, 'success');
+
+    // 6. 提示用户下一步操作
+    setTimeout(() => {
+      const userConfirm = confirm(
+        '文件已下载！\n\n' +
+        `包含 ${avatarCount} 个头像 + ${timelineCount} 张时间轴图片\n\n` +
+        '接下来请：\n' +
+        '1. 在浏览器下载文件夹找到 image-preload.js\n' +
+        '2. 复制到项目的 js/ 目录\n' +
+        '3. 覆盖现有文件\n\n' +
+        '要现在查看文件内容吗？'
+      );
+      if (userConfirm) {
+        // 在新窗口显示文件内容
+        const win = window.open('', '_blank');
+        win.document.write('<pre style="word-wrap: break-word; white-space: pre-wrap; padding: 20px;">' + jsContent + '</pre>');
+        win.document.close();
+      }
+    }, 500);
+
+  } catch (error) {
+    console.error('[saveImagesToCode] 固化失败:', error);
+    showToast('固化图片失败: ' + error.message, 'error');
+  }
+}
+
+/**
+ * 生成 image-preload.js 文件内容
+ */
+function generateImagePreloadJS(imagesData) {
+  // 格式化数据为 JS 代码
+  const avatarsCode = JSON.stringify(imagesData.avatars || {}, null, 2);
+  const timelineCode = JSON.stringify(imagesData.timeline || {}, null, 2);
+
+  return `/**
+ * 图片预置数据
+ *
+ * 此文件存储默认的图片数据（Base64 格式）
+ * 当用户没有上传图片时，使用这些预置图片
+ *
+ * 生成时间: ${new Date().toISOString()}
+ * 生成方式: 编辑器「固化图片到代码」功能
+ *
+ * 优先级: 用户上传 > 预置图片 > 默认占位符
+ */
+
+const PRELOADED_IMAGES = {
+  // 求婚页头像
+  avatars: ${avatarsCode},
+
+  // 时间轴图片（key 格式: node_{节点索引}_img_{内容索引} 或 standalone_{索引}）
+  timeline: ${timelineCode}
+};
+
+// 将预置数据暴露到全局
+if (typeof window !== 'undefined') {
+  window.PRELOADED_IMAGES = PRELOADED_IMAGES;
+}
+`;
+}
+
+/**
+ * 检查是否为 IndexedDB 引用
+ */
+function isIndexedDBRef(src) {
+  return src && typeof src === 'string' && src.startsWith('indexeddb:');
 }

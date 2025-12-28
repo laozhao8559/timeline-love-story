@@ -44,6 +44,34 @@
     </button>
   </div>
 
+  <!-- ========== Editor Toolbar (Editor Mode Only) ========== -->
+  <div class="editor-toolbar" id="editor-toolbar">
+    <div class="editor-toolbar-section">
+      <span class="storage-indicator">存储: 0 B / ~5MB</span>
+    </div>
+    <div class="editor-toolbar-divider"></div>
+    <div class="editor-toolbar-section">
+      <button class="btn-toolbar btn-toolbar-success" id="btn-export-html">
+        <span>📄</span> <span class="toolbar-label">导出HTML</span>
+      </button>
+      <button class="btn-toolbar btn-toolbar-info" id="btn-save-images">
+        <span>💾</span> <span class="toolbar-label">固化图片</span>
+      </button>
+      <button class="btn-toolbar btn-toolbar-primary" id="btn-export">
+        <span>📥</span> <span class="toolbar-label">导出数据</span>
+      </button>
+      <button class="btn-toolbar btn-toolbar-secondary" id="btn-import">
+        <span>📤</span> <span class="toolbar-label">导入数据</span>
+      </button>
+      <button class="btn-toolbar btn-toolbar-secondary" id="btn-clear">
+        <span>🗑️</span> <span class="toolbar-label">清除</span>
+      </button>
+      <button class="btn-toolbar btn-toolbar-secondary" id="btn-reset">
+        <span>🔄</span> <span class="toolbar-label">重置</span>
+      </button>
+    </div>
+  </div>
+
   <!-- ========== Loading Page ========== -->
   <div id="loading-page" class="page active">
     <div class="loading-content">
@@ -132,34 +160,10 @@
         <p>💕 爱你每一天 💕</p>
       </footer>
     </div>
-
-    <!-- Editor Toolbar -->
-    <div class="editor-toolbar">
-      <div class="editor-toolbar-section">
-        <span class="storage-indicator">存储: 0 B / ~5MB</span>
-      </div>
-      <div class="editor-toolbar-divider"></div>
-      <div class="editor-toolbar-section">
-        <button class="btn-toolbar btn-toolbar-success" id="btn-export-html">
-          <span>📄</span> <span class="toolbar-label">导出HTML</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-primary" id="btn-export">
-          <span>📥</span> <span class="toolbar-label">导出数据</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-import">
-          <span>📤</span> <span class="toolbar-label">导入数据</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-clear">
-          <span>🗑️</span> <span class="toolbar-label">清除</span>
-        </button>
-        <button class="btn-toolbar btn-toolbar-secondary" id="btn-reset">
-          <span>🔄</span> <span class="toolbar-label">重置</span>
-        </button>
-      </div>
-    </div>
   </div>
 
   <!-- JavaScript -->
+  <script src="js/image-preload.js"></script>
   <script src="js/indexeddb-storage.js"></script>
   <script src="js/data.js"></script>
   <script src="js/timeline.js"></script>

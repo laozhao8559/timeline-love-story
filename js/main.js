@@ -251,6 +251,16 @@ function initToolbarButtons() {
       input.click();
     });
   }
+
+  // Save images to code button
+  const saveImagesBtn = document.getElementById('btn-save-images');
+  if (saveImagesBtn) {
+    saveImagesBtn.addEventListener('click', () => {
+      if (typeof saveImagesToCode === 'function') {
+        saveImagesToCode();
+      }
+    });
+  }
 }
 
 /**
@@ -348,12 +358,18 @@ function initProposalPage() {
   // Clear existing content
   grid.innerHTML = '';
 
-  // Load saved photos
+  // Load saved photos (优先级: localStorage > 预置图片 > 默认值)
   const savedPhotos = StorageManager?.load?.(AVATAR_PHOTOS_KEY) || {};
   avatarData.forEach(avatar => {
+    // 1. 先检查用户上传的照片
     if (savedPhotos[avatar.id]) {
       avatar.photo = savedPhotos[avatar.id];
     }
+    // 2. 如果没有用户上传，检查预置图片
+    else if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.avatars && window.PRELOADED_IMAGES.avatars[avatar.id]) {
+      avatar.photo = window.PRELOADED_IMAGES.avatars[avatar.id];
+    }
+    // 3. 否则保持默认值 (null)
   });
 
   // Load saved names

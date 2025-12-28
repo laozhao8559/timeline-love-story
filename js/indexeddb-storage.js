@@ -227,6 +227,40 @@ async function clearAllImages() {
   }
 }
 
+/**
+ * 获取所有图片（用于固化到代码）
+ * @returns {Promise<Object>} - 返回 { imageId: base64Data } 的映射
+ */
+async function getAllImagesFromIndexedDB() {
+  try {
+    const db = await initImageDatabase();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([DB_CONFIG.storeName], 'readonly');
+      const objectStore = transaction.objectStore(DB_CONFIG.storeName);
+      const request = objectStore.getAll();
+
+      request.onsuccess = () => {
+        const records = request.result;
+        const imageMap = {};
+        records.forEach(record => {
+          imageMap[record.id] = record.base64Data;
+        });
+        console.log('[IndexedDB] 获取所有图片成功:', Object.keys(imageMap).length, '张');
+        resolve(imageMap);
+      };
+
+      request.onerror = () => {
+        console.error('[IndexedDB] 获取所有图片失败:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('[IndexedDB] 获取所有图片异常:', error);
+    return {};
+  }
+}
+
 // ========== 工具函数 ==========
 
 /**
