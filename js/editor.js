@@ -1873,8 +1873,18 @@ function initScrollAnimations() {
 
   const hasMusic = data.musicData && data.musicData.data;
 
+  // 读取彩蛋代码（从 easter-egg.js 动态读取）
+  let easterEggCode = '';
+  try {
+    easterEggCode = await fetchTextFile('js/easter-egg.js');
+    console.log('[Export] 成功读取 easter-egg.js');
+  } catch (err) {
+    console.warn('[Export] 无法读取 easter-egg.js，使用硬编码版本:', err);
+    // 如果读取失败，使用硬编码的空版本（会保留下面的硬编码代码作为备份）
+  }
+
   // 生成内嵌数据
-  return `
+  let js = `
 // ========== 内嵌数据 ==========
 const TIMELINE_DATA = ${JSON.stringify(data.timelineData)};
 const STANDALONE_BLOCKS = ${JSON.stringify(data.standaloneBlocks)};
@@ -3048,6 +3058,18 @@ if (document.readyState === 'loading') {
   init();
 }
   `.trim();
+
+  // 如果成功读取到 easter-egg.js，替换硬编码的彩蛋代码
+  if (easterEggCode) {
+    // 查找并替换从 "// ========== 彩蛋 ==========" 到 "// ========== 初始化 ==========" 之间的内容
+    const easterEggRegex = /\/\/ ========== 彩蛋 ==========[\s\S]*?\/\/ ========== 初始化 ==========/;
+    if (easterEggRegex.test(js)) {
+      js = js.replace(easterEggRegex, easterEggCode + '\n\n// ========== 初始化 ==========');
+      console.log('[Export] 已用 easter-egg.js 的内容替换硬编码彩蛋代码');
+    }
+  }
+
+  return js;
 }
 
 /**
