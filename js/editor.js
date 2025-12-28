@@ -619,7 +619,14 @@ function addContentBlockToNode(nodeIndex, type, data = {}) {
     node.contents = [];
   }
 
-  const newBlock = { type: type };
+  // 生成唯一的内容块 ID
+  const contentIndex = node.contents.length;
+  const contentId = `c_${node.id}_${contentIndex}`;
+
+  const newBlock = {
+    type: type,
+    contentId: contentId  // 添加唯一 ID
+  };
 
   if (type === 'text') {
     newBlock.content = data.content || '在这里写下你的故事...';
@@ -2469,13 +2476,14 @@ async function saveImagesToCode() {
           const nodes = JSON.parse(timelineData);
           nodes.forEach((node, nodeIndex) => {
             if (node.contents) {
-              node.contents.forEach((content, contentIndex) => {
+              node.contents.forEach((content) => {
                 if (content.type === 'image' && content.src && content.src.startsWith('indexeddb:')) {
                   const imageId = content.src.replace('indexeddb:', '');
                   const base64 = allIndexedDBImages[imageId];
                   if (base64) {
-                    // 使用 node.id 而非 nodeIndex，确保节点排序后 key 仍然有效
-                    const key = `node_${node.id}_img_${contentIndex}`;
+                    // 使用 content.contentId 生成稳定的 key
+                    const contentId = content.contentId || `c_${node.id}_${node.contents.indexOf(content)}`;
+                    const key = `node_${node.id}_${contentId}`;
                     imagesData.timeline[key] = base64;
                   }
                 }

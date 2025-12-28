@@ -248,8 +248,9 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
         .catch(err => {
           console.error('[createContentBlock] IndexedDB 图片加载失败:', err);
           // 回退：尝试从预置图片加载
-          // 使用 node.id 直接构建 key，与固化逻辑保持一致
-          const preloadKey = `node_${nodeId}_img_${contentIndex}`;
+          // 使用 content.contentId 构建稳定的 key，与固化逻辑保持一致
+          const contentId = contentBlock.contentId || `c_${nodeId}_${contentIndex}`;
+          const preloadKey = `node_${nodeId}_${contentId}`;
           if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
             img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
             console.log('[createContentBlock] 使用预置图片:', preloadKey);
