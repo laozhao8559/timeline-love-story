@@ -1538,15 +1538,28 @@ async function convertBlobsToBase64(data) {
 }
 
 /**
- * 收集数据中的所有 blob URL
+ * 收集数据中的所有 blob URL 和 IndexedDB 图片引用
  */
 function collectBlobsFromData(nodes, blobs) {
   nodes.forEach(node => {
     if (node.contents) {
-      node.contents.forEach((content, idx) => {
-        if ((content.type === 'image' || content.type === 'video') &&
-            content.src && content.src.startsWith('blob:')) {
-          blobs.push({ src: content.src, path: `node_${node.id}_${idx}` });
+      node.contents.forEach((content) => {
+        if (content.type === 'image' && content.src) {
+          // 收集 blob URL（用于临时上传的图片）
+          if (content.src.startsWith('blob:')) {
+            const contentId = content.contentId || `c_${node.id}_${node.contents.indexOf(content)}`;
+            blobs.push({ src: content.src, path: `node_${node.id}_${contentId}`, contentId: contentId });
+          }
+          // 收集 IndexedDB 引用（用于已保存的图片）
+          else if (content.src.startsWith('indexeddb:')) {
+            const contentId = content.contentId || `c_${node.id}_${node.contents.indexOf(content)}`;
+            blobs.push({ src: content.src, path: `node_${node.id}_${contentId}`, contentId: contentId, isIndexedDB: true });
+          }
+        }
+        // 视频仍只处理 blob URL
+        else if (content.type === 'video' && content.src && content.src.startsWith('blob:')) {
+          const contentId = content.contentId || `c_${node.id}_${node.contents.indexOf(content)}`;
+          blobs.push({ src: content.src, path: `node_${node.id}_${contentId}`, contentId: contentId });
         }
       });
     }
@@ -1555,8 +1568,18 @@ function collectBlobsFromData(nodes, blobs) {
 
 function collectBlobsFromStandalone(blocks, blobs) {
   blocks.forEach(block => {
-    if ((block.type === 'image' || block.type === 'video') &&
-        block.src && block.src.startsWith('blob:')) {
+    if (block.type === 'image' && block.src) {
+      // 收集 blob URL（用于临时上传的图片）
+      if (block.src.startsWith('blob:')) {
+        blobs.push({ src: block.src, path: `standalone_${block.id}` });
+      }
+      // 收集 IndexedDB 引用（用于已保存的图片）
+      else if (block.src.startsWith('indexeddb:')) {
+        blobs.push({ src: block.src, path: `standalone_${block.id}`, isIndexedDB: true });
+      }
+    }
+    // 视频仍只处理 blob URL
+    else if (block.type === 'video' && block.src && block.src.startsWith('blob:')) {
       blobs.push({ src: block.src, path: `standalone_${block.id}` });
     }
   });
@@ -1572,10 +1595,28 @@ function collectBlobsFromAvatars(avatars, blobs) {
 }
 
 /**
- * 转换单个 blob 为 base64
+ * 转换单个 blob 或 IndexedDB 图片为 base64
  */
-async function convertSingleBlob(blobUrl) {
-  const response = await fetch(blobUrl);
+async function convertSingleBlob(blobUrlOrIdbRef) {
+  // 处理 IndexedDB 引用
+  if (blobUrlOrIdbRef.startsWith('indexeddb:')) {
+    const imageId = blobUrlOrIdbRef.replace('indexeddb:', '');
+    try {
+      // 使用现有的 IndexedDB 加载函数
+      if (typeof loadImageFromIndexedDB === 'function') {
+        const base64 = await loadImageFromIndexedDB(imageId);
+        return base64;
+      } else {
+        throw new Error('IndexedDB 加载函数不可用');
+      }
+    } catch (error) {
+      console.error('从 IndexedDB 加载图片失败:', imageId, error);
+      throw error;
+    }
+  }
+
+  // 处理 blob URL
+  const response = await fetch(blobUrlOrIdbRef);
   if (!response.ok) throw new Error('Failed to fetch blob');
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
@@ -1587,14 +1628,25 @@ async function convertSingleBlob(blobUrl) {
 }
 
 /**
- * 替换数据中的 blob URL
+ * 替换数据中的 blob URL 和 IndexedDB 引用
  */
 function replaceBlobsInData(nodes, urlToBase64) {
   nodes.forEach(node => {
     if (node.contents) {
       node.contents.forEach(content => {
-        if ((content.type === 'image' || content.type === 'video') &&
-            content.src && content.src.startsWith('blob:') && urlToBase64[content.src]) {
+        if (content.type === 'image' && content.src) {
+          // 替换 blob URL
+          if (content.src.startsWith('blob:') && urlToBase64[content.src]) {
+            content.src = urlToBase64[content.src];
+          }
+          // 替换 IndexedDB 引用
+          else if (content.src.startsWith('indexeddb:') && urlToBase64[content.src]) {
+            content.src = urlToBase64[content.src];
+          }
+        }
+        // 视频仍只处理 blob URL
+        else if (content.type === 'video' && content.src &&
+                 content.src.startsWith('blob:') && urlToBase64[content.src]) {
           content.src = urlToBase64[content.src];
         }
       });
@@ -1604,8 +1656,19 @@ function replaceBlobsInData(nodes, urlToBase64) {
 
 function replaceBlobsInStandalone(blocks, urlToBase64) {
   blocks.forEach(block => {
-    if ((block.type === 'image' || block.type === 'video') &&
-        block.src && block.src.startsWith('blob:') && urlToBase64[block.src]) {
+    if (block.type === 'image' && block.src) {
+      // 替换 blob URL
+      if (block.src.startsWith('blob:') && urlToBase64[block.src]) {
+        block.src = urlToBase64[block.src];
+      }
+      // 替换 IndexedDB 引用
+      else if (block.src.startsWith('indexeddb:') && urlToBase64[block.src]) {
+        block.src = urlToBase64[block.src];
+      }
+    }
+    // 视频仍只处理 blob URL
+    else if (block.type === 'video' && block.src &&
+             block.src.startsWith('blob:') && urlToBase64[block.src]) {
       block.src = urlToBase64[block.src];
     }
   });
