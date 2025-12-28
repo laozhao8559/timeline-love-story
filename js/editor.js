@@ -2108,33 +2108,287 @@ document.addEventListener('click', (e) => {
 });
 
 // ========== 音乐播放器 ==========
-let bgMusic = null;
-let isMusicPlaying = false;
+// 使用 var 声明全局变量（允许重复声明）
+var bgMusic = null;
+var isMusicPlaying = false;
+var isMuted = true; // 默认静音
+var currentVolume = 0;
+var targetVolume = 0;
+var volumeFadeInterval = null;
+
+// ========== 场景音量配置 ==========
+const SCENE_VOLUMES = {
+  normal: 0.50,        // 普通时间轴滚动
+  daughter: 0.30,      // 女儿出生节点
+  easterEggStart: 0.40, // 彩蛋开始
+  finalWords: 0.65,    // 终极文字
+  easterEggEnd: 0.45,  // 彩蛋结束
+  unmuted: 0.60        // 用户开启声音时的音量
+};
+
+// 当前场景
+let currentScene = 'normal';
 
 function initMusicController() {
   ${hasMusic ? `
   bgMusic = document.getElementById('bg-music');
   if (!bgMusic) return;
-  bgMusic.volume = 0.35;
+  bgMusic.volume = 0; // 初始音量为0（静音播放）
+  bgMusic.preload = 'auto';
+  bgMusic.muted = true; // 先设置为静音，绕过自动播放限制
   ` : 'return;'}
 
   const toggleBtn = document.getElementById('music-toggle');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', toggleMusic);
   }
+
+  // 初始化UI状态
+  updateMusicUI();
+
+  // 尝试自动播放（静音）
+  attemptAutoplay();
+
+  console.log('[Music] 音乐控制器已初始化');
+}
+
+function attemptAutoplay() {
+  if (!bgMusic) return;
+
+  const playPromise = bgMusic.play();
+
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      bgMusic.muted = false;
+      isMusicPlaying = true;
+      console.log('[Music] 自动播放成功（音量0）');
+    }).catch(err => {
+      console.log('[Music] 自动播放被阻止，等待用户交互');
+
+      const handleFirstInteraction = () => {
+        bgMusic.muted = false;
+        bgMusic.play().then(() => {
+          isMusicPlaying = true;
+          console.log('[Music] 用户交互后播放成功');
+        }).catch(e => {
+          console.warn('[Music] 播放失败:', e);
+        });
+
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('touchstart', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
+
+      document.addEventListener('click', handleFirstInteraction, { once: true });
+      document.addEventListener('touchstart', handleFirstInteraction, { once: true });
+      document.addEventListener('keydown', handleFirstInteraction, { once: true });
+    });
+  }
 }
 
 function toggleMusic() {
   if (!bgMusic) return;
-  if (isMusicPlaying) {
-    bgMusic.pause();
+
+  if (isMuted) {
+    // 开启声音：渐入到当前场景音量
+    isMuted = false;
+    const targetVol = SCENE_VOLUMES[currentScene] || SCENE_VOLUMES.normal;
+    console.log('[Music] 开启声音，渐入到', targetVol);
+    fadeInMusic(targetVol, 1000);
   } else {
-    bgMusic.play();
+    // 关闭声音：渐出到0
+    isMuted = true;
+    console.log('[Music] 关闭声音，渐出');
+    fadeOutMusic(800);
   }
-  isMusicPlaying = !isMusicPlaying;
-  const icon = document.querySelector('.music-icon');
-  if (icon) {
-    icon.textContent = isMusicPlaying ? '🔊' : '🎵';
+
+  updateMusicUI();
+}
+
+function fadeInMusic(targetVol, duration = 1000) {
+  if (!bgMusic) return;
+
+  targetVolume = Math.min(targetVol, 1);
+  const startVolume = bgMusic.volume;
+  const startTime = Date.now();
+
+  // 清除之前的渐变
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(\`[Music] 渐入: \${startVolume.toFixed(2)} → \${targetVolume.toFixed(2)} (\${duration}ms)\`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // 使用 easeOutCubic 缓动
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+    currentVolume = startVolume + (targetVolume - startVolume) * easedProgress;
+
+    bgMusic.volume = currentVolume;
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+  }, 16); // 60fps
+}
+
+function fadeOutMusic(duration = 800, callback) {
+  if (!bgMusic) return;
+
+  const startVolume = bgMusic.volume;
+  const startTime = Date.now();
+
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(\`[Music] 渐出: \${startVolume.toFixed(2)} → 0 (\${duration}ms)\`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    currentVolume = startVolume * (1 - progress);
+    bgMusic.volume = currentVolume;
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+      if (callback) callback();
+    }
+  }, 16);
+}
+
+/**
+ * 设置场景音量（平滑过渡）
+ */
+function setSceneVolume(scene, duration = 1000) {
+  if (!bgMusic) return;
+
+  // 更新当前场景
+  currentScene = scene;
+
+  // 如果静音状态，只记录场景，不改变音量
+  if (isMuted) {
+    console.log(\`[Music] 静音中，仅更新场景: \${scene}\`);
+    return;
+  }
+
+  const targetVol = SCENE_VOLUMES[scene] || SCENE_VOLUMES.normal;
+  const startVolume = bgMusic.volume;
+  const startTime = Date.now();
+
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(\`[Music] 场景音量: \${startVolume.toFixed(2)} → \${targetVol.toFixed(2)} (\${scene})\`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // easeInOut
+    const easedProgress = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    currentVolume = startVolume + (targetVol - startVolume) * easedProgress;
+    bgMusic.volume = currentVolume;
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+  }, 16);
+}
+
+/**
+ * 直接设置音量（绕过场景配置，用于精细控制）
+ */
+function setVolumeDirect(volume, duration = 1000) {
+  if (!bgMusic) return;
+
+  const targetVol = Math.min(Math.max(volume, 0), 1);
+  const startVolume = bgMusic.volume;
+  const startTime = Date.now();
+
+  if (volumeFadeInterval) {
+    clearInterval(volumeFadeInterval);
+  }
+
+  console.log(\`[Music] 直接音量: \${startVolume.toFixed(2)} → \${targetVol.toFixed(2)} (\${duration}ms)\`);
+
+  volumeFadeInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // easeInOut
+    const easedProgress = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    currentVolume = startVolume + (targetVol - startVolume) * easedProgress;
+    bgMusic.volume = currentVolume;
+
+    if (progress >= 1) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+  }, 16);
+}
+
+/**
+ * 检测"女儿出生"节点并降低音量
+ */
+function initDaughterNodeVolumeControl() {
+  // 查找标题包含"出生"的节点
+  const nodes = document.querySelectorAll('.timeline-node');
+
+  nodes.forEach(node => {
+    const title = node.querySelector('.timeline-title');
+    if (title && title.textContent.includes('出生')) {
+      console.log('[Music] 检测到"女儿出生"节点');
+
+      // 创建 observer 检测节点进入视口
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            console.log('[Music] 女儿出生节点进入视口，降低音量');
+            setSceneVolume('daughter', 1500);
+          } else {
+            // 离开后恢复正常
+            if (currentScene === 'daughter') {
+              console.log('[Music] 离开女儿节点，恢复正常音量');
+              setSceneVolume('normal', 1500);
+            }
+          }
+        });
+      }, { threshold: 0.6 });
+
+      observer.observe(node);
+    }
+  });
+}
+
+function updateMusicUI() {
+  const toggleBtn = document.getElementById('music-toggle');
+  const icon = toggleBtn?.querySelector('.music-icon');
+
+  if (!toggleBtn || !icon) return;
+
+  if (isMuted) {
+    // 静音状态：显示🎵
+    toggleBtn.classList.remove('playing');
+    icon.textContent = '🎵';
+  } else {
+    // 播放状态：显示🔊
+    toggleBtn.classList.add('playing');
+    icon.textContent = '🔊';
   }
 }
 
@@ -2385,6 +2639,8 @@ let bottomStayTimer = null;
 let easterEggOverlay = null;
 
 function initEasterEgg() {
+  console.log('[EasterEgg] 初始化彩蛋检测 - 监听页面滚动');
+
   // 监测页面滚动，判断是否到达底部
   window.addEventListener('scroll', checkScrollToBottom);
 }
@@ -2401,7 +2657,9 @@ function checkScrollToBottom() {
 
   if (isAtBottom) {
     if (!bottomStayTimer) {
+      console.log('[EasterEgg] 到达页面底部，开始计时...');
       bottomStayTimer = setTimeout(() => {
+        console.log('[EasterEgg] 停留时间达标，准备触发彩蛋');
         triggerEasterEgg();
       }, EASTER_EGG_CONFIG.stayDuration);
     }
@@ -2409,6 +2667,7 @@ function checkScrollToBottom() {
     if (bottomStayTimer) {
       clearTimeout(bottomStayTimer);
       bottomStayTimer = null;
+      console.log('[EasterEgg] 离开底部，取消计时');
     }
   }
 }
@@ -2417,10 +2676,19 @@ function triggerEasterEgg() {
   if (easterEggTriggered) return;
   easterEggTriggered = true;
 
+  console.log('[EasterEgg] 🎉 触发彩蛋动画！');
+
   // 移除滚动监听
   window.removeEventListener('scroll', checkScrollToBottom);
 
+  // 1. 锁定滚动
   document.body.style.overflow = 'hidden';
+
+  // 2. 音乐降至彩蛋音量
+  if (typeof setSceneVolume === 'function') {
+    setSceneVolume('easterEggStart', 1500);
+  }
+
   const timelineContainer = document.querySelector('.timeline-container');
   if (timelineContainer) {
     timelineContainer.classList.add('easter-egg-stage1');
@@ -2757,6 +3025,7 @@ function init() {
   initMusicController();
   initTimeline();
   initEasterEgg();
+  initDaughterNodeVolumeControl();
 
   setTimeout(() => {
     transitionToPage('choice');
