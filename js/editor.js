@@ -2361,7 +2361,11 @@ function toggleMusic() {
         userInteracted = true;
       }
     } else {
-      // 已经解锁，直接播放
+      // 已经解锁，检查是否允许播放
+      if (userMuted) {
+        console.log('[Music] userMuted=true，禁止播放');
+        return;
+      }
       console.log('[Music] 音频已解锁，开始播放');
       bgMusic.play().catch(err => {
         console.warn('[Music] 播放失败:', err.name);
@@ -2371,12 +2375,29 @@ function toggleMusic() {
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
     animateMasterVolumeFactor(1, 1000);
   } else {
-    // 关闭声音：设置 userMuted = true，阻止所有自动播放
+    // 关闭声音：设置 userMuted = true，停止所有定时器，暂停播放
     isMuted = true;
     userMuted = true;
     console.log('[Music] 用户关闭声音，userMuted = true（永久静音）');
-    console.log('[Music] 关闭声音，masterVolumeFactor 1 → 0');
-    animateMasterVolumeFactor(0, 800);
+
+    // 清除所有正在进行的音量渐变
+    if (volumeFadeInterval) {
+      clearInterval(volumeFadeInterval);
+      volumeFadeInterval = null;
+    }
+
+    // 立即暂停播放（Safari 必须）
+    bgMusic.pause();
+    console.log('[Music] 已暂停播放');
+
+    // 重置播放头（Safari 终极静音规则）
+    bgMusic.currentTime = 0;
+    console.log('[Music] 已重置播放头');
+
+    // 确保音量为 0
+    masterVolumeFactor = 0;
+    bgMusic.volume = 0;
+    console.log('[Music] 已将音量归零');
   }
 
   updateMusicUI();
