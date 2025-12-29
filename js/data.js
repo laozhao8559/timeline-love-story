@@ -47,7 +47,7 @@ const timelineData = [
   {
     id: 3,
     date: '2022.05.02',
-    title: '我们的婚礼',
+    title: '我们拍了婚纱照，举行婚礼……',
     isHighlight: true,
     contents: [
       {
@@ -75,7 +75,7 @@ const timelineData = [
   {
     id: 5,
     date: '2023.01.31',
-    title: '刘知意出生',
+    title: '我们的小宝贝到来啦……',
     isHighlight: true,
     contents: [
       {
