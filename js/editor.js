@@ -3321,12 +3321,20 @@ async function fetchTextFile(path) {
 function generateHTML(data, css, js) {
   const hasMusic = data.musicData && data.musicData.data;
 
-  // 音乐文件路径：如果是 base64 则已在前面处理为相对路径
+  // 音乐文件路径：转换为导出后的相对路径
   let musicSrc = '';
   if (hasMusic) {
     musicSrc = data.musicData.data;
     // 如果是 base64 格式，使用默认音乐路径
     if (musicSrc.startsWith('data:')) {
+      musicSrc = './assets/music/bg-music.mp3';
+    }
+    // 如果是项目源路径 js/assets/music/，转换为导出路径 ./assets/music/
+    else if (musicSrc.startsWith('js/assets/music/')) {
+      musicSrc = musicSrc.replace('js/assets/music/', './assets/music/');
+    }
+    // 如果已经是 ./ 开头，保持不变
+    else if (!musicSrc.startsWith('./')) {
       musicSrc = './assets/music/bg-music.mp3';
     }
   }
