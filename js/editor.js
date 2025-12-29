@@ -3400,8 +3400,76 @@ ${css}
 
   ${hasMusic ? `<audio id="bg-music" src="${musicSrc}" loop></audio>` : ''}
 
+  <!-- Debug Console (iOS Safari Only) -->
+  <div id="debug-console" style="display:none;position:fixed;top:10px;left:10px;right:10px;bottom:60px;background:rgba(0,0,0,0.9);color:#0f0;font-family:monospace;font-size:12px;padding:10px;border-radius:8px;z-index:9999;overflow:auto;">
+    <div id="debug-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #0f0;padding-bottom:8px;">
+      <span>🔍 调试日志</span>
+      <div>
+        <button id="debug-copy" style="background:#0f0;color:#000;border:none;padding:4px 8px;border-radius:4px;margin-right:4px;cursor:pointer;font-size:11px;">📋 复制</button>
+        <button id="debug-clear" style="background:#f00;color:#fff;border:none;padding:4px 8px;border-radius:4px;margin-right:4px;cursor:pointer;font-size:11px;">清空</button>
+        <button id="debug-close" style="background:#666;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✕</button>
+      </div>
+    </div>
+    <div id="debug-logs"></div>
+  </div>
+  <button id="debug-toggle" style="display:none;position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.8);color:#0f0;border:2px solid #0f0;border-radius:50%;width:50px;height:50px;font-size:20px;z-index:9998;cursor:pointer;">🔍</button>
+
   <script>
 ${js}
+
+  // Debug Console (iOS Safari)
+  (function() {
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      const debugConsole = document.getElementById('debug-console');
+      const debugLogs = document.getElementById('debug-logs');
+      const debugToggle = document.getElementById('debug-toggle');
+      const debugClose = document.getElementById('debug-close');
+      const debugClear = document.getElementById('debug-clear');
+      const debugCopy = document.getElementById('debug-copy');
+
+      debugToggle.style.display = 'block';
+
+      let logBuffer = [];
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+
+      function addLog(type, args) {
+        const time = new Date().toLocaleTimeString();
+        const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        const entry = document.createElement('div');
+        entry.style.cssText = 'margin-bottom:4px;border-bottom:1px solid #333;padding-bottom:4px;';
+        entry.innerHTML = \`<span style="color:#888">[\${time}]</span> <span style="color:\${type === 'error' ? '#f55' : type === 'warn' ? '#ff0' : '#0f0'}">[\${type.toUpperCase()}]</span> \${msg}\`;
+        debugLogs.appendChild(entry);
+        debugLogs.scrollTop = debugLogs.scrollHeight;
+        logBuffer.push(\`[\${time}] [\${type.toUpperCase()}] \${msg}\`);
+      }
+
+      console.log = function(...args) { originalLog.apply(console, args); addLog('log', args); };
+      console.warn = function(...args) { originalWarn.apply(console, args); addLog('warn', args); };
+      console.error = function(...args) { originalError.apply(console, args); addLog('error', args); };
+
+      debugToggle.addEventListener('click', () => { debugConsole.style.display = 'block'; });
+      debugClose.addEventListener('click', () => { debugConsole.style.display = 'none'; });
+      debugClear.addEventListener('click', () => { debugLogs.innerHTML = ''; logBuffer = []; });
+      debugCopy.addEventListener('click', () => {
+        const text = logBuffer.join('\\n');
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          alert('已复制到剪贴板');
+        }
+      });
+
+      console.log('[Debug Console] iOS Safari 调试控制台已启用');
+    }
+  })();
   </script>
 </body>
 </html>`;
