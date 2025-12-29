@@ -2191,7 +2191,7 @@ function createStandaloneBlock(block) {
   } else if (block.type === 'image') {
     wrapper.innerHTML = '<div class="standalone-media"><img src="' + block.src +
       '" alt="' + escapeHtml(block.alt || '') + '" class="standalone-image">' +
-      (block.caption ? '<p class="standalone-caption">' + escapeHtml(block.caption) + '</p>' : '') +
+      (block.caption ? '<p class="standalone-caption">' + escapeHtml(block.caption) + '<\/p>' : '') +
       '</div>';
     wrapper.querySelector('img').addEventListener('click', () => openLightbox(block.src, block.alt));
   } else if (block.type === 'video') {
