@@ -2268,6 +2268,7 @@ var volumeFadeInterval = null;
 var sceneVolume = 0; // 场景实际音量（不乘以系数的原始值）
 var userInteracted = false; // 标记用户是否已点击音乐按钮
 var audioUnlocked = false; // iOS Safari 音频解锁状态
+var userMuted = false; // 用户是否主动关闭声音（最高优先级）
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -2315,8 +2316,10 @@ function toggleMusic() {
   if (!bgMusic) return;
 
   if (isMuted) {
-    // 开启声音：masterVolumeFactor 从 0 渐变到 1
+    // 开启声音：设置 userMuted = false，允许播放
     isMuted = false;
+    userMuted = false;
+    console.log('[Music] 用户开启声音，userMuted = false');
 
     // 首次点击：iOS Safari 音频解锁（必须在同步调用栈中执行）
     if (!audioUnlocked) {
@@ -2332,6 +2335,12 @@ function toggleMusic() {
           bgMusic.pause();
           audioUnlocked = true;
           userInteracted = true;
+
+          // 检查用户是否已关闭声音
+          if (userMuted) {
+            console.log('[Music] userMuted=true，不自动播放');
+            return;
+          }
 
           // 解锁后开始正常播放
           console.log('[Music] 开始播放音乐');
@@ -2362,8 +2371,10 @@ function toggleMusic() {
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
     animateMasterVolumeFactor(1, 1000);
   } else {
-    // 关闭声音：masterVolumeFactor 从 1 渐变到 0
+    // 关闭声音：设置 userMuted = true，阻止所有自动播放
     isMuted = true;
+    userMuted = true;
+    console.log('[Music] 用户关闭声音，userMuted = true（永久静音）');
     console.log('[Music] 关闭声音，masterVolumeFactor 1 → 0');
     animateMasterVolumeFactor(0, 800);
   }
@@ -2419,6 +2430,12 @@ function applyVolume() {
 
 function fadeInMusic(targetVol, duration = 1000) {
   if (!bgMusic) return;
+
+  // 如果用户已主动关闭声音，不允许自动渐入
+  if (userMuted) {
+    console.log('[Music] userMuted=true，阻止 fadeInMusic');
+    return;
+  }
 
   targetVolume = Math.min(targetVol, 1);
   const startVolume = sceneVolume;
@@ -2484,6 +2501,12 @@ function fadeOutMusic(duration = 800, callback) {
  */
 function setSceneVolume(scene, duration = 1000) {
   if (!bgMusic) return;
+
+  // 如果用户已主动关闭声音，不允许自动调整音量
+  if (userMuted) {
+    console.log('[Music] userMuted=true，阻止 setSceneVolume');
+    return;
+  }
 
   // 更新当前场景
   currentScene = scene;
