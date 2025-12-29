@@ -232,23 +232,21 @@
   background: var(--primary-light);
 }
 
-/* 图片样式 */
-.avatar-card img {
+/* ========== Avatar Background Image（使用 background-image 替代 img，修复 Safari） ========== */
+.avatar-bg-image {
   width: 100%;
   height: 100%;
-  display: block;        /* 消除 inline baseline 对齐，修复 Safari */
-  object-fit: contain;   /* 完整显示图片不被裁切 */
-  line-height: 0;        /* 消除行高影响，修复 Safari */
-  /* 默认居中，可通过拖动调整 */
-  transform-origin: center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* 编辑模式下的可拖动图片 */
-.editor-mode .avatar-card img {
+.editor-mode .avatar-bg-image {
   cursor: grab;
 }
 
-.editor-mode .avatar-card img:active {
+.editor-mode .avatar-bg-image:active {
   cursor: grabbing;
 }
 

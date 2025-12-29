@@ -2724,11 +2724,17 @@ function initProposalPage() {
     // 显示图片或 emoji
     let avatarContent;
     if (avatar.photo) {
-      // 应用保存的图片偏移量和缩放
+      // 应用保存的图片缩放和偏移（使用 background-image 方式）
+      const scale = avatar.imageScale || 1;
       const offsetX = avatar.imageOffset?.x || 0;
       const offsetY = avatar.imageOffset?.y || 0;
-      const scale = avatar.imageScale || 1;
-      avatarContent = '<div class="avatar-image-wrapper"><img src="' + avatar.photo + '" alt="' + escapeHtml(avatar.name) + '" style="transform: translate(' + offsetX + 'px, ' + offsetY + 'px) scale(' + scale + ')"></div>';
+
+      // 计算 background-size 和 background-position
+      const bgSize = (scale * 100) + '%';
+      const bgPosX = offsetX ? 'calc(50% + ' + offsetX + 'px)' : '50%';
+      const bgPosY = offsetY ? 'calc(50% + ' + offsetY + 'px)' : '50%';
+
+      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" style="background-image: url(\'' + avatar.photo + '\'); background-size: ' + bgSize + '; background-position: ' + bgPosX + ' ' + bgPosY + ';"></div></div>';
     } else {
       avatarContent = '<div class="avatar-image-wrapper"><span class="avatar-emoji">' + avatar.emoji + '</span></div>';
     }
