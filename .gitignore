@@ -17,3 +17,4 @@ npm-debug.log*
 # js/assets/images/real/
 # js/assets/videos/*.mp4
 # js/assets/music/*.mp3
+assets/videos/backup/
