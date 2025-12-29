@@ -2266,6 +2266,7 @@ var currentVolume = 0;
 var targetVolume = 0;
 var volumeFadeInterval = null;
 var sceneVolume = 0; // 场景实际音量（不乘以系数的原始值）
+var userInteracted = false; // 标记用户是否已点击音乐按钮
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -2286,7 +2287,6 @@ function initMusicController() {
   if (!bgMusic) return;
   bgMusic.volume = 0; // 初始音量为0（静音播放）
   bgMusic.preload = 'auto';
-  bgMusic.muted = true; // 先设置为静音，绕过自动播放限制
   ` : 'return;'}
 
   const toggleBtn = document.getElementById('music-toggle');
@@ -2297,56 +2297,74 @@ function initMusicController() {
   // 初始化UI状态
   updateMusicUI();
 
-  // 尝试自动播放（静音）
-  attemptAutoplay();
-
   // 初始化场景音量为默认场景音量（normal），总音量系数为0
   sceneVolume = SCENE_VOLUMES.normal;
   masterVolumeFactor = 0;
 
-  console.log('[Music] 音乐控制器已初始化');
+  console.log('[Music] 音乐控制器已初始化，等待用户点击播放');
 }
 
-function attemptAutoplay() {
-  if (!bgMusic) return;
-
-  const playPromise = bgMusic.play();
-
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      bgMusic.muted = false;
-      isMusicPlaying = true;
-      console.log('[Music] 自动播放成功（音量0）');
-    }).catch(err => {
-      console.log('[Music] 自动播放被阻止，等待用户交互');
-
-      const handleFirstInteraction = () => {
-        bgMusic.muted = false;
-        bgMusic.play().then(() => {
-          isMusicPlaying = true;
-          console.log('[Music] 用户交互后播放成功');
-        }).catch(e => {
-          console.warn('[Music] 播放失败:', e);
-        });
-
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('touchstart', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-      };
-
-      document.addEventListener('click', handleFirstInteraction, { once: true });
-      document.addEventListener('touchstart', handleFirstInteraction, { once: true });
-      document.addEventListener('keydown', handleFirstInteraction, { once: true });
-    });
-  }
-}
-
+/**
+ * 切换声音开关
+ * 🎵 → 🔊 (masterVolumeFactor: 0 → 1)
+ * 🔊 → 🎵 (masterVolumeFactor: 1 → 0)
+ * 音乐一直在播放，不暂停
+ */
 function toggleMusic() {
   if (!bgMusic) return;
 
   if (isMuted) {
     // 开启声音：masterVolumeFactor 从 0 渐变到 1
     isMuted = false;
+
+    // 首次点击：启动音乐播放
+    if (!userInteracted) {
+      console.log('[Music] 首次点击，准备播放音乐');
+
+      // iOS Safari：确保音频已加载
+      const tryPlay = () => {
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            isMusicPlaying = true;
+            userInteracted = true;
+            console.log('[Music] 音乐播放成功，开始渐入');
+          }).catch(err => {
+            console.error('[Music] 播放失败:', err.name, err.message);
+
+            // 如果是 NotAllowedError，可能是用户交互问题
+            if (err.name === 'NotAllowedError') {
+              console.warn('[Music] 被浏览器阻止，需要更多用户交互');
+            }
+            // 如果是 NotSupportedError，可能是格式问题
+            else if (err.name === 'NotSupportedError') {
+              console.warn('[Music] 音频格式不支持');
+            }
+          });
+        }
+      };
+
+      // 检查音频是否已准备好
+      if (bgMusic.readyState >= 3) { // HAVE_FUTURE_DATA
+        tryPlay();
+      } else {
+        // 等待音频加载完成
+        console.log('[Music] 音频未准备好，等待加载...');
+        const onCanPlay = () => {
+          console.log('[Music] 音频加载完成，开始播放');
+          bgMusic.removeEventListener('canplay', onCanPlay);
+          tryPlay();
+        };
+        bgMusic.addEventListener('canplay', onCanPlay, { once: true });
+
+        // 如果音频还没开始加载，触发加载
+        if (bgMusic.readyState === 0) { // HAVE_NOTHING
+          console.log('[Music] 触发音频加载');
+          bgMusic.load();
+        }
+      }
+    }
+
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
     animateMasterVolumeFactor(1, 1000);
   } else {
