@@ -1410,27 +1410,21 @@ function initEditor() {
 
 // ========== Export Standalone HTML ==========
 /**
- * 导出为独立HTML文件
- * 所有资源内嵌，移除编辑功能，生成只读阅读模式
+ * 导出为 ZIP 文件
+ * 包含 index.html + assets/ 目录结构
+ * 所有资源作为独立文件，不使用 base64 内嵌
  */
 async function exportStandaloneHTML() {
   try {
-    showToast('正在生成HTML文件...', 'info');
+    showToast('正在生成导出文件...', 'info');
 
     // 1. 收集所有数据
     const exportData = await collectAllDataForExport();
 
-    // 2. 检查文件大小
-    const sizeCheck = await estimateTotalSize(exportData);
-    if (!sizeCheck.canExport) {
-      showToast(sizeCheck.message, 'error');
-      return;
-    }
-    showToast(sizeCheck.message, 'info');
-
-    // 3. 转换所有 blob URL 为 base64
+    // 2. 跳过文件大小检查（ZIP 导出不受 25MB 限制）
+    // 3. 转换所有 blob URL 和 IndexedDB 引用为文件
     showToast('正在处理图片和视频...', 'info');
-    const processedData = await convertBlobsToBase64(exportData);
+    const { processedData, files } = await convertBlobsToFiles(exportData);
 
     // 4. 合并所有 CSS 文件
     showToast('正在合并样式文件...', 'info');
@@ -1444,10 +1438,11 @@ async function exportStandaloneHTML() {
     showToast('正在组装HTML...', 'info');
     const htmlContent = generateHTML(processedData, combinedCSS, standaloneJS);
 
-    // 7. 下载文件
-    downloadHTML(htmlContent);
+    // 7. 创建并下载 ZIP 文件
+    showToast('正在创建 ZIP 文件...', 'info');
+    await downloadZIP(htmlContent, files, processedData.musicData);
 
-    showToast('HTML文件生成成功！', 'success');
+    showToast('ZIP 文件生成成功！', 'success');
   } catch (error) {
     console.error('Export error:', error);
     showToast('生成失败：' + error.message, 'error');
@@ -1485,27 +1480,17 @@ async function collectAllDataForExport() {
 
     console.log('[Export] avatarData 处理完成:', avatarData);
 
-    // 获取音乐数据（如果没有用户上传的音乐，读取默认音乐）
+    // 获取音乐数据
+    // ZIP 导出模式：保持原始格式，在 downloadZIP 中统一处理
     let musicData = StorageManager.load(STORAGE_KEYS.MUSIC_DATA);
     if (!musicData) {
-      console.log('[Export] 没有用户上传的音乐，读取默认音乐文件');
-      try {
-        const defaultMusicResponse = await fetch('js/assets/music/bg-music.mp3');
-        if (defaultMusicResponse.ok) {
-          const defaultMusicBlob = await defaultMusicResponse.blob();
-          const defaultMusicBase64 = await blobToBase64(defaultMusicBlob);
-          musicData = {
-            name: 'One Summer\'s Day.mp3',
-            size: formatFileSize(defaultMusicBlob.size),
-            data: defaultMusicBase64
-          };
-          console.log('[Export] 默认音乐读取成功');
-        } else {
-          console.warn('[Export] 无法读取默认音乐文件');
-        }
-      } catch (err) {
-        console.warn('[Export] 读取默认音乐失败:', err);
-      }
+      console.log('[Export] 没有用户上传的音乐，使用默认音乐路径');
+      musicData = {
+        name: 'One Summer\'s Day.mp3',
+        size: '未知',
+        data: 'js/assets/music/bg-music.mp3',  // 使用相对路径
+        isDefault: true
+      };
     }
 
     const result = {
@@ -1536,40 +1521,114 @@ function cloneTimelineData() {
 }
 
 /**
- * 递归转换所有 blob URL 为 base64
+ * 收集所有 blob URL 和 IndexedDB 引用，转换为文件
+ * 返回: { processedData, files }
+ * - processedData: 数据中的 src 已替换为相对路径
+ * - files: [{ path, blob, type }] 用于添加到 ZIP
  */
-async function convertBlobsToBase64(data) {
+async function convertBlobsToFiles(data) {
   const processedData = JSON.parse(JSON.stringify(data));
   const blobs = [];
 
-  // 收集所有 blob URL
+  // 收集所有 blob URL 和 IndexedDB 引用
   collectBlobsFromData(processedData.timelineData, blobs);
   collectBlobsFromStandalone(processedData.standaloneBlocks, blobs);
   collectBlobsFromAvatars(processedData.avatarData, blobs);
 
   if (blobs.length === 0) {
-    return processedData;
+    return { processedData, files: [] };
   }
 
-  // 并发转换
-  showToast(`正在转换 ${blobs.length} 个文件...`, 'info');
-  const base64Map = {};
+  // 并发转换 blob 为 File 对象，并生成文件路径
+  showToast(`正在处理 ${blobs.length} 个文件...`, 'info');
+  const files = [];
+  const urlToPath = {};
+
+  // 获取文件扩展名的辅助函数
+  const getFileExtension = (blob, originalSrc) => {
+    // 优先从 MIME 类型判断
+    if (blob.type) {
+      const mimeToExt = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/gif': '.gif',
+        'image/webp': '.webp',
+        'image/svg+xml': '.svg',
+        'video/mp4': '.mp4',
+        'video/webm': '.webm',
+        'audio/mpeg': '.mp3',
+        'audio/mp3': '.mp3',
+        'audio/wav': '.wav'
+      };
+      if (mimeToExt[blob.type]) {
+        return mimeToExt[blob.type];
+      }
+    }
+    // 从原始 URL 推断
+    if (originalSrc.includes('.')) {
+      const match = originalSrc.match(/\.([a-z0-9]+)(?:\?|$)/i);
+      if (match) return '.' + match[1];
+    }
+    // 默认扩展名
+    return '.bin';
+  };
+
   for (let i = 0; i < blobs.length; i++) {
-    const blob = blobs[i];
+    const blobInfo = blobs[i];
     try {
-      base64Map[blob.src] = await convertSingleBlob(blob.src);
-      showToast(`转换进度: ${i + 1}/${blobs.length}`, 'info');
+      // 获取 blob 数据
+      let blob;
+      if (blobInfo.src.startsWith('indexeddb:')) {
+        const imageId = blobInfo.src.replace('indexeddb:', '');
+        if (typeof loadImageFromIndexedDB === 'function') {
+          const base64 = await loadImageFromIndexedDB(imageId);
+          // 将 base64 转回 blob
+          const response = await fetch(base64);
+          blob = await response.blob();
+        } else {
+          throw new Error('IndexedDB 加载函数不可用');
+        }
+      } else {
+        const response = await fetch(blobInfo.src);
+        blob = await response.blob();
+      }
+
+      // 生成文件名和路径
+      const ext = getFileExtension(blob, blobInfo.src);
+      const filename = blobInfo.path + ext;
+
+      // 确定目标目录
+      let targetDir = 'assets/images/';
+      if (blob.type.startsWith('video/')) {
+        targetDir = 'assets/videos/';
+      } else if (blob.type.startsWith('audio/')) {
+        targetDir = 'assets/music/';
+      }
+
+      const filePath = targetDir + filename;
+
+      // 记录原始 URL 到文件路径的映射
+      urlToPath[blobInfo.src] = './' + filePath;
+
+      // 添加到文件列表
+      files.push({
+        path: filePath,
+        blob: blob,
+        type: blob.type
+      });
+
+      showToast(`处理进度: ${i + 1}/${blobs.length}`, 'info');
     } catch (e) {
-      console.error('转换失败:', blob.src, e);
+      console.error('处理文件失败:', blobInfo.src, e);
     }
   }
 
-  // 替换所有 blob URL
-  replaceBlobsInData(processedData.timelineData, base64Map);
-  replaceBlobsInStandalone(processedData.standaloneBlocks, base64Map);
-  replaceBlobsInAvatars(processedData.avatarData, base64Map);
+  // 替换所有 blob URL 和 IndexedDB 引用为相对路径
+  replaceBlobsWithPaths(processedData.timelineData, urlToPath);
+  replaceBlobsInStandaloneWithPaths(processedData.standaloneBlocks, urlToPath);
+  replaceBlobsInAvatarsWithPaths(processedData.avatarData, urlToPath);
 
-  return processedData;
+  return { processedData, files };
 }
 
 /**
@@ -1714,6 +1773,63 @@ function replaceBlobsInAvatars(avatars, urlToBase64) {
   avatars.forEach(avatar => {
     if (avatar.photo && avatar.photo.startsWith('blob:') && urlToBase64[avatar.photo]) {
       avatar.photo = urlToBase64[avatar.photo];
+    }
+  });
+}
+
+/**
+ * 替换数据中的 blob URL 和 IndexedDB 引用为相对路径
+ * 用于 ZIP 导出模式
+ */
+function replaceBlobsWithPaths(nodes, urlToPath) {
+  nodes.forEach(node => {
+    if (node.contents) {
+      node.contents.forEach(content => {
+        if (content.type === 'image' && content.src) {
+          // 替换 blob URL
+          if (content.src.startsWith('blob:') && urlToPath[content.src]) {
+            content.src = urlToPath[content.src];
+          }
+          // 替换 IndexedDB 引用
+          else if (content.src.startsWith('indexeddb:') && urlToPath[content.src]) {
+            content.src = urlToPath[content.src];
+          }
+        }
+        // 视频只处理 blob URL
+        else if (content.type === 'video' && content.src &&
+                 content.src.startsWith('blob:') && urlToPath[content.src]) {
+          content.src = urlToPath[content.src];
+        }
+      });
+    }
+  });
+}
+
+function replaceBlobsInStandaloneWithPaths(blocks, urlToPath) {
+  blocks.forEach(block => {
+    if (block.type === 'image' && block.src) {
+      // 替换 blob URL
+      if (block.src.startsWith('blob:') && urlToPath[block.src]) {
+        block.src = urlToPath[block.src];
+      }
+      // 替换 IndexedDB 引用
+      else if (block.src.startsWith('indexeddb:') && urlToPath[block.src]) {
+        block.src = urlToPath[block.src];
+      }
+    }
+    // 视频只处理 blob URL
+    else if (block.type === 'video' && block.src &&
+             block.src.startsWith('blob:') && urlToPath[block.src]) {
+      block.src = urlToPath[block.src];
+    }
+  });
+}
+
+function replaceBlobsInAvatarsWithPaths(avatars, urlToPath) {
+  if (!Array.isArray(avatars)) return;
+  avatars.forEach(avatar => {
+    if (avatar.photo && avatar.photo.startsWith('blob:') && urlToPath[avatar.photo]) {
+      avatar.photo = urlToPath[avatar.photo];
     }
   });
 }
@@ -3159,12 +3275,23 @@ async function fetchTextFile(path) {
 
 /**
  * 生成完整的 HTML 文档
+ * 音乐文件使用相对路径（在 ZIP 导出模式下）
  */
 function generateHTML(data, css, js) {
   const hasMusic = data.musicData && data.musicData.data;
 
+  // 音乐文件路径：如果是 base64 则已在前面处理为相对路径
+  let musicSrc = '';
+  if (hasMusic) {
+    musicSrc = data.musicData.data;
+    // 如果是 base64 格式，使用默认音乐路径
+    if (musicSrc.startsWith('data:')) {
+      musicSrc = './assets/music/bg-music.mp3';
+    }
+  }
+
   console.log('[Export] generateHTML - hasMusic:', hasMusic);
-  console.log('[Export] generateHTML - musicData:', data.musicData);
+  console.log('[Export] generateHTML - musicSrc:', musicSrc);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -3253,7 +3380,7 @@ ${css}
     </div>
   </div>
 
-  ${hasMusic ? `<audio id="bg-music" src="${data.musicData.data}" loop></audio>` : ''}
+  ${hasMusic ? `<audio id="bg-music" src="${musicSrc}" loop></audio>` : ''}
 
   <script>
 ${js}
@@ -3263,20 +3390,82 @@ ${js}
 }
 
 /**
- * 下载 HTML 文件
+ * 下载 ZIP 文件
+ * 使用 JSZip 创建包含 index.html 和 assets/ 的 ZIP 包
  */
-function downloadHTML(htmlContent) {
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+async function downloadZIP(htmlContent, files, musicData) {
+  try {
+    // 检查 JSZip 是否可用
+    if (typeof JSZip === 'undefined') {
+      throw new Error('JSZip 库未加载，请检查网络连接');
+    }
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `我们的故事-${new Date().toISOString().slice(0, 10)}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    showToast('正在创建 ZIP 文件...', 'info');
 
-  URL.revokeObjectURL(url);
+    const zip = new JSZip();
+
+    // 添加 index.html
+    zip.file('index.html', htmlContent);
+
+    // 添加所有资源文件到 assets/ 目录
+    for (const file of files) {
+      zip.file(file.path, file.blob);
+    }
+
+    // 处理音乐文件
+    if (musicData && musicData.data) {
+      const musicSrc = musicData.data;
+      let musicBlob = null;
+
+      try {
+        // 1. base64 格式 - 提取数据
+        if (musicSrc.startsWith('data:')) {
+          const response = await fetch(musicSrc);
+          musicBlob = await response.blob();
+        }
+        // 2. blob URL 格式 - 获取 blob
+        else if (musicSrc.startsWith('blob:')) {
+          const response = await fetch(musicSrc);
+          musicBlob = await response.blob();
+        }
+        // 3. 相对路径（默认音乐）- 从项目读取
+        else if (musicSrc.startsWith('js/assets/') || musicSrc.startsWith('./')) {
+          const response = await fetch(musicSrc);
+          if (response.ok) {
+            musicBlob = await response.blob();
+          }
+        }
+
+        // 添加到 ZIP
+        if (musicBlob) {
+          zip.file('assets/music/bg-music.mp3', musicBlob);
+          console.log('[Export] 音乐文件已添加到 ZIP');
+        }
+      } catch (e) {
+        console.error('[Export] 处理音乐文件失败:', e);
+      }
+    }
+
+    // 生成 ZIP 文件
+    showToast('正在压缩文件...', 'info');
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+    // 下载 ZIP 文件
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `我们的故事-${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+    console.log('[Export] ZIP 文件下载成功');
+  } catch (error) {
+    console.error('[Export] 创建 ZIP 失败:', error);
+    throw error;
+  }
 }
 
 /**
