@@ -1470,7 +1470,8 @@ async function collectAllDataForExport() {
     const defaultAvatarData = window.avatarData || [];
     const avatarData = Array.from(defaultAvatarData).map(avatar => ({
       ...avatar,
-      photo: savedPhotos[avatar.id] || null,
+      // 优先使用已保存的照片，否则使用原始 photo
+      photo: savedPhotos[avatar.id] !== undefined ? savedPhotos[avatar.id] : avatar.photo,
       name: savedNames[avatar.id] || avatar.name,
       remark: savedRemarks[avatar.id] || avatar.remark,
       imageOffset: savedOffsets[avatar.id] || avatar.imageOffset,
