@@ -19,6 +19,7 @@ var targetVolume = 0;
 var volumeFadeInterval = null;
 var sceneVolume = 0; // 场景实际音量（不乘以系数的原始值）
 var userInteracted = false; // 标记用户是否已点击音乐按钮
+var audioUnlocked = false; // iOS Safari 音频解锁状态
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -78,76 +79,45 @@ function toggleMusic() {
     // 开启声音：masterVolumeFactor 从 0 渐变到 1
     isMuted = false;
 
-    // 首次点击：启动音乐播放
-    if (!userInteracted) {
-      console.log('[Music] 首次点击，准备播放音乐');
+    // 首次点击：iOS Safari 音频解锁（必须在同步调用栈中执行）
+    if (!audioUnlocked) {
+      console.log('[Music] 首次点击，执行 iOS Safari 音频解锁');
 
-      // iOS Safari：确保音频已加载
-      const tryPlay = () => {
-        const playPromise = bgMusic.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            isMusicPlaying = true;
-            userInteracted = true;
-            console.log('[Music] 音乐播放成功，开始渐入');
-          }).catch(err => {
-            console.error('[Music] 播放失败:', err.name, err.message);
+      // 立即播放再暂停，解锁音频（同步执行，不能异步）
+      bgMusic.currentTime = 0;
+      bgMusic.volume = 0;
+      const playPromise = bgMusic.play(); // 同步调用 play()
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('[Music] 音频解锁成功，立即暂停');
+          bgMusic.pause();
+          audioUnlocked = true;
+          userInteracted = true;
 
-            // 如果是 NotAllowedError，可能是用户交互问题
-            if (err.name === 'NotAllowedError') {
-              console.warn('[Music] 被浏览器阻止，需要更多用户交互');
-            }
-            // 如果是 NotSupportedError，可能是格式问题
-            else if (err.name === 'NotSupportedError') {
-              console.warn('[Music] 音频格式不支持');
-            }
+          // 解锁后开始正常播放
+          console.log('[Music] 开始播放音乐');
+          bgMusic.currentTime = 0;
+          bgMusic.play().catch(err => {
+            console.warn('[Music] 播放失败:', err.name);
           });
-        }
-      };
-
-      // 检查音频是否已准备好
-      console.log('[Music] readyState:', bgMusic.readyState, '(0=NOTHING, 1=METADATA, 2=CURRENT, 3=FUTURE, 4=ENOUGH)');
-      console.log('[Music] audio src:', bgMusic.src);
-      console.log('[Music] audio currentSrc:', bgMusic.currentSrc);
-      console.log('[Music] audio networkState:', bgMusic.networkState, '(0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE, 4=LOADED)');
-
-      if (bgMusic.readyState >= 3) { // HAVE_FUTURE_DATA
-        tryPlay();
+        }).catch(err => {
+          console.error('[Music] 音频解锁失败:', err.name, err.message);
+          // 即使解锁失败，也标记为已尝试
+          audioUnlocked = true;
+          userInteracted = true;
+        });
       } else {
-        // 等待音频加载完成
-        console.log('[Music] 音频未准备好，等待加载...');
-
-        // 监听错误事件
-        const onError = (e) => {
-          console.error('[Music] 音频加载错误:', e);
-          console.error('[Music] error detail:', bgMusic.error);
-          console.error('[Music] error code:', bgMusic.error?.code, '(1=ABORTED, 2=NETWORK, 3=DECODE, 4=SRC_NOT_SUPPORTED)');
-          bgMusic.removeEventListener('error', onError);
-        };
-        bgMusic.addEventListener('error', onError);
-
-        // 监听加载开始
-        const onLoadStart = () => {
-          console.log('[Music] 开始加载音频');
-        };
-        bgMusic.addEventListener('loadstart', onLoadStart);
-
-        // 监听 canplay
-        const onCanPlay = () => {
-          console.log('[Music] canplay 事件触发，开始播放');
-          bgMusic.removeEventListener('canplay', onCanPlay);
-          bgMusic.removeEventListener('error', onError);
-          bgMusic.removeEventListener('loadstart', onLoadStart);
-          tryPlay();
-        };
-        bgMusic.addEventListener('canplay', onCanPlay, { once: true });
-
-        // 如果音频还没开始加载，触发加载
-        if (bgMusic.readyState === 0) { // HAVE_NOTHING
-          console.log('[Music] 触发音频加载');
-          bgMusic.load();
-        }
+        // 不支持 Promise 的旧浏览器
+        bgMusic.pause();
+        audioUnlocked = true;
+        userInteracted = true;
       }
+    } else {
+      // 已经解锁，直接播放
+      console.log('[Music] 音频已解锁，开始播放');
+      bgMusic.play().catch(err => {
+        console.warn('[Music] 播放失败:', err.name);
+      });
     }
 
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
