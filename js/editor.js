@@ -2348,6 +2348,7 @@ function toggleMusic() {
       console.log('[Music] readyState:', bgMusic.readyState, '(0=NOTHING, 1=METADATA, 2=CURRENT, 3=FUTURE, 4=ENOUGH)');
       console.log('[Music] audio src:', bgMusic.src);
       console.log('[Music] audio currentSrc:', bgMusic.currentSrc);
+      console.log('[Music] audio networkState:', bgMusic.networkState, '(0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE, 4=LOADED)');
 
       if (bgMusic.readyState >= 3) { // HAVE_FUTURE_DATA
         tryPlay();
