@@ -3466,7 +3466,8 @@ ${css}
     </div>
     <div id="debug-logs"></div>
   </div>
-  <button id="debug-toggle" style="display:none;position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;border:2px solid #0f0;border-radius:50%;width:50px;height:50px;font-size:20px;z-index:9998;cursor:pointer;">🔍</button>
+  <!-- Debug toggle button disabled -->
+  <!-- <button id="debug-toggle" style="display:none;position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;border:2px solid #0f0;border-radius:50%;width:50px;height:50px;font-size:20px;z-index:9998;cursor:pointer;">🔍</button> -->
 
   <script>
 ${js}
