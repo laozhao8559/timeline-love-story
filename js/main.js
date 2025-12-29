@@ -501,23 +501,14 @@ function createAvatarCard(avatar, index) {
   // Display photo if available, otherwise emoji
   let avatarContent;
   if (avatar.photo) {
-    // 应用保存的图片缩放和偏移（使用 background-image 方式）
+    // 应用保存的图片缩放和偏移（使用 img + transform 方式，Safari 兼容）
     const scale = avatar.imageScale || 1;
     const offsetX = avatar.imageOffset?.x || 0;
     const offsetY = avatar.imageOffset?.y || 0;
 
-    // 计算 background-size 和 background-position
-    // scale: 1 = 100% (cover), scale > 1 放大, scale < 1 缩小
-    // 偏移通过 background-position 实现
-    const bgSize = (scale * 100) + '%';
-    // background-position 需要百分比，中心点是 50% 50%
-    // offsetX/Y 是像素值，需要转换为相对于容器的百分比偏移
-    const bgPosX = offsetX ? `calc(50% + ${offsetX}px)` : '50%';
-    const bgPosY = offsetY ? `calc(50% + ${offsetY}px)` : '50%';
-
-    avatarContent = `<div class="avatar-bg-image"
-      style="background-image: url('${avatar.photo}'); background-size: ${bgSize}; background-position: ${bgPosX} ${bgPosY};"
-      data-avatar-index="${index}"></div>`;
+    avatarContent = `<img src="${avatar.photo}" alt="${avatar.name}"
+      style="transform: translate(${offsetX}px, ${offsetY}px) scale(${scale})"
+      data-avatar-index="${index}">`;
   } else {
     avatarContent = `<span class="avatar-emoji">${avatar.emoji}</span>`;
   }
@@ -570,10 +561,10 @@ function createAvatarCard(avatar, index) {
 
   // 编辑模式：添加图片拖动和缩放功能
   if (editorMode && hasPhoto) {
-    const bgImage = card.querySelector('.avatar-bg-image');
-    if (bgImage) {
-      setupImageDrag(bgImage, index);
-      setupImageZoom(bgImage, index, card);
+    const img = card.querySelector('img');
+    if (img) {
+      setupImageDrag(img, index);
+      setupImageZoom(img, index, card);
     }
   }
 
@@ -660,14 +651,10 @@ function setupImageDrag(img, index) {
 }
 
 /**
- * 更新图片变换（位置 + 缩放）- 使用 background-image 方式
+ * 更新图片变换（位置 + 缩放）- 使用 transform 方式
  */
-function updateImageTransform(bgImage, x, y, scale) {
-  const bgSize = (scale * 100) + '%';
-  const bgPosX = x ? `calc(50% + ${x}px)` : '50%';
-  const bgPosY = y ? `calc(50% + ${y}px)` : '50%';
-  bgImage.style.backgroundSize = bgSize;
-  bgImage.style.backgroundPosition = `${bgPosX} ${bgPosY}`;
+function updateImageTransform(img, x, y, scale) {
+  img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 }
 
 /**
@@ -679,13 +666,13 @@ function updateAvatarScale(index, scaleValue) {
   avatar.imageScale = scale;
 
   // 更新图片显示
-  const bgImage = document.querySelector(`.avatar-bg-image[data-avatar-index="${index}"]`);
+  const img = document.querySelector(`img[data-avatar-index="${index}"]`);
   const valueDisplay = document.querySelector(`[data-avatar-index="${index}"] .avatar-scale-value`);
 
-  if (bgImage) {
+  if (img) {
     // 动态获取当前的偏移量
     const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
-    updateImageTransform(bgImage, currentOffset.x, currentOffset.y, scale);
+    updateImageTransform(img, currentOffset.x, currentOffset.y, scale);
   }
 
   if (valueDisplay) {
@@ -710,11 +697,11 @@ function saveAvatarScale(index, scaleValue) {
 /**
  * 设置图片滚轮缩放功能（编辑模式）
  */
-function setupImageZoom(bgImage, index, card) {
+function setupImageZoom(img, index, card) {
   const avatar = avatarData[index];
 
   // 滚轮缩放
-  bgImage.addEventListener('wheel', (e) => {
+  img.addEventListener('wheel', (e) => {
     if (!editorMode) return;
     e.preventDefault();
     e.stopPropagation();
@@ -727,7 +714,7 @@ function setupImageZoom(bgImage, index, card) {
 
     // 动态获取当前的偏移量
     const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
-    updateImageTransform(bgImage, currentOffset.x, currentOffset.y, newScale);
+    updateImageTransform(img, currentOffset.x, currentOffset.y, newScale);
 
     // 更新滑块和显示值
     const slider = card.querySelector('.avatar-scale-slider');
@@ -745,7 +732,7 @@ function setupImageZoom(bgImage, index, card) {
   let initialPinchDistance = 0;
   let initialScale = avatar.imageScale || 1;
 
-  bgImage.addEventListener('touchstart', (e) => {
+  img.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) {
       e.preventDefault();
       const touch1 = e.touches[0];
@@ -758,7 +745,7 @@ function setupImageZoom(bgImage, index, card) {
     }
   }, { passive: false });
 
-  bgImage.addEventListener('touchmove', (e) => {
+  img.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2) {
       e.preventDefault();
       const touch1 = e.touches[0];
@@ -776,7 +763,7 @@ function setupImageZoom(bgImage, index, card) {
 
       // 动态获取当前的偏移量
       const currentOffset = avatar.imageOffset || { x: 0, y: 0 };
-      updateImageTransform(bgImage, currentOffset.x, currentOffset.y, newScale);
+      updateImageTransform(img, currentOffset.x, currentOffset.y, newScale);
 
       // 更新滑块和显示值
       const slider = card.querySelector('.avatar-scale-slider');

@@ -2725,17 +2725,12 @@ function initProposalPage() {
     // 显示图片或 emoji
     let avatarContent;
     if (avatar.photo) {
-      // 应用保存的图片缩放和偏移（使用 background-image 方式）
+      // 应用保存的图片缩放和偏移（使用 img + transform 方式，Safari 兼容）
       const scale = avatar.imageScale || 1;
       const offsetX = avatar.imageOffset?.x || 0;
       const offsetY = avatar.imageOffset?.y || 0;
 
-      // 计算 background-size 和 background-position
-      const bgSize = (scale * 100) + '%';
-      const bgPosX = offsetX ? 'calc(50% + ' + offsetX + 'px)' : '50%';
-      const bgPosY = offsetY ? 'calc(50% + ' + offsetY + 'px)' : '50%';
-
-      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" data-photo="' + escapeHtml(avatar.photo) + '" data-bg-size="' + bgSize + '" data-bg-pos-x="' + bgPosX + '" data-bg-pos-y="' + bgPosY + '"></div></div>';
+      avatarContent = '<div class="avatar-image-wrapper"><img src="' + escapeHtml(avatar.photo) + '" alt="' + escapeHtml(avatar.name) + '" style="transform: translate(' + offsetX + 'px, ' + offsetY + 'px) scale(' + scale + ')"></div></div>';
     } else {
       avatarContent = '<div class="avatar-image-wrapper"><span class="avatar-emoji">' + avatar.emoji + '</span></div>';
     }
@@ -2744,16 +2739,6 @@ function initProposalPage() {
     const nameHtml = '<div class="avatar-name">' + escapeHtml(avatar.name) + '</div>';
 
     card.innerHTML = avatarContent + nameHtml;
-
-    // 设置 background-image（避免引号嵌套问题）
-    if (avatar.photo) {
-      const bgImage = card.querySelector('.avatar-bg-image');
-      if (bgImage) {
-        bgImage.style.backgroundImage = 'url("' + avatar.photo + '")';
-        bgImage.style.backgroundSize = bgImage.dataset.bgSize;
-        bgImage.style.backgroundPosition = bgImage.dataset.bgPosX + ' ' + bgImage.dataset.bgPosY;
-      }
-    }
 
     // 点击事件
     card.addEventListener('click', () => {

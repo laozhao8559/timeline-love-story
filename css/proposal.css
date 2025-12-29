@@ -218,6 +218,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  position: relative; /* 必须：为 img 绝对定位提供参考 */
 }
 
 /* 中间圆形图 */
@@ -232,21 +233,24 @@
   background: var(--primary-light);
 }
 
-/* ========== Avatar Background Image（使用 background-image 替代 img，修复 Safari） ========== */
-.avatar-bg-image {
+/* ========== Avatar Image（Safari 修复方案：绝对定位） ========== */
+.avatar-card img {
+  position: absolute; /* 🔥 关键：绝对定位 */
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  object-fit: cover; /* 填满容器，裁剪图片 */
+  object-position: center;
+  display: block; /* 防止 inline 基线 */
 }
 
 /* 编辑模式下的可拖动图片 */
-.editor-mode .avatar-bg-image {
+.editor-mode .avatar-card img {
   cursor: grab;
 }
 
-.editor-mode .avatar-bg-image:active {
+.editor-mode .avatar-card img:active {
   cursor: grabbing;
 }
 
