@@ -100,12 +100,7 @@ const timelineData = [
       {
         contentId: 'c_6_1',
         type: 'text',
-        content: '岳麓山 / 罗浮山 / 梧桐山\n\n山很高，\n但你在身边，\n每一步都走得很安心。'
-      },
-      {
-        contentId: 'c_6_2',
-        type: 'text',
-        content: '深圳天文台\n\n那天看见星空的时候，\n我突然觉得，\n我已经拥有了\n属于我的宇宙。'
+        content: '岳麓山 / 罗浮山 / 梧桐山\n\n山很高，\n但你在身边，\n每一段都爬的很安心。'
       }
     ]
   },
@@ -119,7 +114,7 @@ const timelineData = [
       {
         contentId: 'c_7_0',
         type: 'text',
-        content: '武汉动物园 / 江滩 / 彩虹滑梯\n\n她的笑声，\n成了我们世界里\n最温柔的背景音。\n\n谢谢你，\n让我看见你成为母亲的样子。'
+        content: '武汉动物园 / 江滩 / 彩虹滑梯/ 公园……\n\n她的笑声，\n成了我们世界里\n最温柔绵长的背景音。\n\n谢谢你，\n让我有幸，成为一位父亲。'
       }
     ]
   },
