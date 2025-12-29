@@ -122,7 +122,7 @@ const timelineData = [
   {
     id: 8,
     date: '2025.11',
-    title: '九寨沟 · 黄龙 · 成都',
+    title: '九寨沟 · 黄龙',
     isHighlight: true,
     contents: [
       {
