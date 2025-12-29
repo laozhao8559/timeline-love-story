@@ -218,7 +218,7 @@
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* 改为顶部对齐，修复 Safari */
   justify-content: center;
   overflow: hidden; /* 在这里隐藏溢出，图片会被正确裁剪 */
   position: relative;
@@ -238,6 +238,9 @@
 
 /* 图片样式 */
 .avatar-card img {
+  position: absolute; /* 添加绝对定位，修复 Safari 位置问题 */
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain; /* 改为 contain，完整显示图片不被裁切 */

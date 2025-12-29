@@ -18,6 +18,7 @@ var currentVolume = 0;
 var targetVolume = 0;
 var volumeFadeInterval = null;
 var sceneVolume = 0; // 场景实际音量（不乘以系数的原始值）
+var userInteracted = false; // 标记用户是否已点击音乐按钮
 
 // ========== 场景音量配置 ==========
 const SCENE_VOLUMES = {
@@ -47,7 +48,6 @@ function initMusicController(musicSrc) {
   bgMusic.loop = true;
   bgMusic.volume = 0; // 初始音量为0（静音播放）
   bgMusic.preload = 'auto';
-  bgMusic.muted = true; // 先设置为静音，绕过自动播放限制
 
   // 绑定切换按钮
   const toggleBtn = document.getElementById('music-toggle');
@@ -58,64 +58,11 @@ function initMusicController(musicSrc) {
   // 初始化UI状态
   updateMusicUI();
 
-  // 等待音频元数据加载后尝试播放
-  bgMusic.addEventListener('canplaythrough', () => {
-    console.log('[Music] 音频加载完成，尝试播放');
-    attemptAutoplay();
-  }, { once: true });
-
-  // 如果已经加载完成，直接尝试播放
-  if (bgMusic.readyState >= 4) {
-    attemptAutoplay();
-  }
-
   // 初始化场景音量为默认场景音量（normal），总音量系数为0
   sceneVolume = SCENE_VOLUMES.normal;
   masterVolumeFactor = 0;
 
-  console.log('[Music] 音乐控制器已初始化，文件:', musicSrc);
-}
-
-/**
- * 尝试自动播放
- * 使用 muted 属性绕过浏览器限制，播放后立即取消静音
- */
-function attemptAutoplay() {
-  if (!bgMusic) return;
-
-  const playPromise = bgMusic.play();
-
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      // 播放成功，取消静音但保持音量为0
-      bgMusic.muted = false;
-      isMusicPlaying = true;
-      console.log('[Music] 自动播放成功（静音）');
-    }).catch(err => {
-      console.log('[Music] 自动播放被阻止，等待用户交互');
-
-      // 监听第一次用户交互
-      const handleFirstInteraction = () => {
-        bgMusic.muted = false;
-        bgMusic.play().then(() => {
-          isMusicPlaying = true;
-          console.log('[Music] 用户交互后播放成功（静音）');
-        }).catch(e => {
-          console.warn('[Music] 播放失败:', e);
-        });
-
-        // 移除监听
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('touchstart', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-      };
-
-      // 监听各种用户交互
-      document.addEventListener('click', handleFirstInteraction, { once: true });
-      document.addEventListener('touchstart', handleFirstInteraction, { once: true });
-      document.addEventListener('keydown', handleFirstInteraction, { once: true });
-    });
-  }
+  console.log('[Music] 音乐控制器已初始化，等待用户点击播放，文件:', musicSrc);
 }
 
 /**
@@ -130,6 +77,19 @@ function toggleMusic() {
   if (isMuted) {
     // 开启声音：masterVolumeFactor 从 0 渐变到 1
     isMuted = false;
+
+    // 首次点击：启动音乐播放
+    if (!userInteracted) {
+      console.log('[Music] 首次点击，启动音乐播放');
+      bgMusic.play().then(() => {
+        isMusicPlaying = true;
+        userInteracted = true;
+        console.log('[Music] 音乐播放成功，开始渐入');
+      }).catch(err => {
+        console.warn('[Music] 播放失败:', err);
+      });
+    }
+
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
     animateMasterVolumeFactor(1, 1000);
   } else {
