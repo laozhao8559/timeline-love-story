@@ -240,7 +240,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* 填满容器，裁剪图片 */
+  object-fit: contain; /* 完整显示图片，不裁剪 */
   object-position: center;
   display: block; /* 防止 inline 基线 */
 }
