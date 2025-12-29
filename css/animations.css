@@ -559,7 +559,7 @@ body.editor-mode .video-wrapper {
 /* ========== 阶段2：三句文字样式 ========== */
 .easter-egg-stage2-text-line {
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-size: clamp(1.4rem, 3vw, 2rem);
   color: #FFB6C1; /* 粉色 */
   text-shadow:
     0 0 15px rgba(255, 182, 193, 0.6),
@@ -599,7 +599,7 @@ body.editor-mode .video-wrapper {
 
 .easter-egg-text-line:last-child {
   color: #FF6B9D;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
   text-shadow:
     0 0 25px rgba(255, 107, 157, 0.9),
     0 0 50px rgba(255, 107, 157, 0.6),
