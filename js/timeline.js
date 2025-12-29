@@ -101,39 +101,33 @@ function createStandaloneBlock(block, standaloneIndex = 0) {
     `;
   } else if (block.type === 'image') {
     const mediaDiv = document.createElement('div');
-    mediaDiv.className = 'standalone-media';
+    mediaDiv.className = 'standalone-media media-loading';
 
     const img = document.createElement('img');
     img.alt = escapeHtml(block.alt || '');
     img.className = 'standalone-image';
+    // 延迟加载：存储在 data-src 中
+    img.dataset.src = block.src;
+    img.style.opacity = '0';
 
-    // 检查是否为 IndexedDB 引用
-    if (isIndexedDBRef(block.src)) {
-      // 异步加载 IndexedDB 图片
-      loadImageFromIndexedDB(extractImageId(block.src))
-        .then(base64 => {
-          img.src = base64;
-          console.log('[createStandaloneBlock] IndexedDB 图片加载成功:', block.src);
-        })
-        .catch(err => {
-          console.error('[createStandaloneBlock] IndexedDB 图片加载失败:', err);
-          // 回退：尝试从预置图片加载
-          // 使用 block.id 构建 key，与固化逻辑保持一致
-          const preloadKey = `standalone_${block.id}`;
-          if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
-            img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
-            console.log('[createStandaloneBlock] 使用预置图片:', preloadKey);
-          } else {
-            img.alt = '加载失败: ' + (block.alt || '');
-          }
-        });
-    } else {
-      img.src = block.src;
-    }
+    // 错误处理
+    img.addEventListener('error', () => {
+      mediaDiv.classList.remove('media-loading');
+      mediaDiv.classList.add('media-error');
+      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#f5f5f5" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#999" font-size="14">图片加载失败</text></svg>');
+      img.style.opacity = '1';
+    });
 
-    // 点击事件：使用异步加载的实际 src
+    // 加载成功
+    img.addEventListener('load', () => {
+      mediaDiv.classList.remove('media-loading');
+      mediaDiv.classList.add('media-loaded');
+      img.style.opacity = '1';
+    });
+
+    // 点击事件
     img.addEventListener('click', () => {
-      const actualSrc = isIndexedDBRef(block.src) ? img.src : block.src;
+      const actualSrc = img.src || block.src;
       openLightbox(actualSrc, block.alt);
     });
 
@@ -233,39 +227,36 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
     return textEl;
 
   } else if (contentBlock.type === 'image') {
+    // 创建图片容器，支持延迟加载
+    const imgContainer = document.createElement('div');
+    imgContainer.className = 'timeline-image-container media-loading';
+
     const img = document.createElement('img');
     img.alt = contentBlock.alt || '';
     img.className = 'timeline-image';
+    // 不直接设置 src，而是存储在 data-src 中，等进入视口再加载
+    img.dataset.src = contentBlock.src;
+    img.style.opacity = '0';
 
-    // 检查是否为 IndexedDB 引用
-    if (isIndexedDBRef(contentBlock.src)) {
-      // 异步加载 IndexedDB 图片
-      loadImageFromIndexedDB(extractImageId(contentBlock.src))
-        .then(base64 => {
-          img.src = base64;
-          console.log('[createContentBlock] IndexedDB 图片加载成功:', contentBlock.src);
-        })
-        .catch(err => {
-          console.error('[createContentBlock] IndexedDB 图片加载失败:', err);
-          // 回退：尝试从预置图片加载
-          // 使用 content.contentId 构建稳定的 key，与固化逻辑保持一致
-          const contentId = contentBlock.contentId || `c_${nodeId}_${contentIndex}`;
-          const preloadKey = `node_${nodeId}_${contentId}`;
-          if (window.PRELOADED_IMAGES && window.PRELOADED_IMAGES.timeline && window.PRELOADED_IMAGES.timeline[preloadKey]) {
-            img.src = window.PRELOADED_IMAGES.timeline[preloadKey];
-            console.log('[createContentBlock] 使用预置图片:', preloadKey);
-          } else {
-            img.alt = '加载失败: ' + (contentBlock.alt || '');
-          }
-        });
-    } else {
-      // 直接使用 src
-      img.src = contentBlock.src;
-    }
+    // 加载错误处理：显示兜底占位
+    img.addEventListener('error', () => {
+      console.error('[createContentBlock] 图片加载失败:', contentBlock.src);
+      imgContainer.classList.remove('media-loading');
+      imgContainer.classList.add('media-error');
+      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#f5f5f5" width="100%" height="100%"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#999" font-size="14">图片加载失败</text></svg>');
+      img.style.opacity = '1';
+    });
 
-    // 点击事件：使用异步加载的实际 src
+    // 加载成功处理
+    img.addEventListener('load', () => {
+      imgContainer.classList.remove('media-loading');
+      imgContainer.classList.add('media-loaded');
+      img.style.opacity = '1';
+    });
+
+    // 点击事件
     img.addEventListener('click', () => {
-      const actualSrc = isIndexedDBRef(contentBlock.src) ? img.src : contentBlock.src;
+      const actualSrc = img.src || contentBlock.src;
       openLightbox(actualSrc, contentBlock.alt);
     });
 
@@ -273,8 +264,11 @@ function createContentBlock(contentBlock, nodeId, contentIndex) {
     img.classList.add(randomAnimation);
     img.dataset.animate = randomAnimation;
     img.dataset.blockIndex = contentIndex;
-    console.log('[createContentBlock] 创建图片元素，src:', contentBlock.src, '动画:', randomAnimation);
-    return img;
+    imgContainer.dataset.animate = randomAnimation;
+
+    imgContainer.appendChild(img);
+    console.log('[createContentBlock] 创建图片元素（延迟加载）, data-src:', contentBlock.src, '动画:', randomAnimation);
+    return imgContainer;
 
   } else if (contentBlock.type === 'video') {
     const videoEl = createVideoElement(contentBlock);
@@ -305,13 +299,15 @@ function createImageElement(media) {
 
 /**
  * Create a video element with custom controls
+ * 视频延迟加载：点击后才加载视频源
  */
 function createVideoElement(media) {
   const wrapper = document.createElement('div');
-  wrapper.className = 'video-wrapper';
+  wrapper.className = 'video-wrapper media-loading';
 
   const video = document.createElement('video');
-  video.src = media.src;
+  // 不直接设置 src，而是存储在 data-src 中，点击后才加载
+  video.dataset.src = media.src;
   video.poster = media.poster || '';
   video.className = 'timeline-video';
   // 使用 setAttribute 设置布尔属性更可靠
@@ -321,17 +317,63 @@ function createVideoElement(media) {
   video.setAttribute('x5-video-player-fullscreen', 'false');
   video.muted = true; // 默认静音
   video.controls = false;
+  video.preload = 'none'; // 禁止预加载
 
   // Create play button overlay
   const playOverlay = document.createElement('div');
   playOverlay.className = 'video-play-overlay';
-  playOverlay.innerHTML = '<span class="play-icon">▶</span><span class="sound-icon">🔇</span>';
+  playOverlay.innerHTML = '<span class="play-icon">▶</span><span class="sound-icon">🔇</span><span class="loading-hint">点击加载视频</span>';
+
+  // 标记视频是否已加载
+  let videoLoaded = false;
+
+  // 加载视频的函数
+  const loadVideo = () => {
+    if (videoLoaded) return;
+    videoLoaded = true;
+
+    // 显示加载状态
+    const loadingHint = playOverlay.querySelector('.loading-hint');
+    if (loadingHint) loadingHint.textContent = '加载中...';
+    wrapper.classList.add('video-loading');
+
+    // 设置真正的 src
+    video.src = media.src;
+
+    // 等待视频可以播放
+    video.addEventListener('canplay', () => {
+      wrapper.classList.remove('video-loading');
+      wrapper.classList.remove('media-loading');
+      wrapper.classList.add('media-loaded');
+      if (loadingHint) loadingHint.style.display = 'none';
+    }, { once: true });
+
+    // 加载失败处理
+    video.addEventListener('error', () => {
+      console.error('[createVideoElement] 视频加载失败:', media.src);
+      wrapper.classList.remove('media-loading', 'video-loading');
+      wrapper.classList.add('media-error');
+      playOverlay.innerHTML = '<span class="error-hint">视频加载失败</span>';
+    }, { once: true });
+  };
 
   // Play handler
   const playHandler = () => {
-    video.play();
-    playOverlay.style.display = 'none';
-    video.controls = true;
+    // 先加载视频
+    loadVideo();
+
+    // 等视频加载后再播放
+    if (video.readyState >= 2) {
+      video.play();
+      playOverlay.style.display = 'none';
+      video.controls = true;
+    } else {
+      video.addEventListener('canplay', () => {
+        video.play();
+        playOverlay.style.display = 'none';
+        video.controls = true;
+      }, { once: true });
+    }
   };
 
   playOverlay.addEventListener('click', playHandler);

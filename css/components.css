@@ -299,3 +299,119 @@
 .icon-xl {
   font-size: 3rem;
 }
+
+/* ========== Media Loading States ========== */
+/* 图片/视频容器 - 延迟加载支持 */
+.timeline-image-container,
+.standalone-media {
+  position: relative;
+  min-height: 150px;
+  display: block;
+}
+
+.timeline-image,
+.standalone-image {
+  transition: opacity 0.3s ease;
+  display: block;
+  width: 100%;
+}
+
+/* 加载中状态 */
+.media-loading {
+  position: relative;
+}
+
+.media-loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin: -16px;
+  border: 3px solid #f0f0f0;
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: media-loading-spin 0.8s linear infinite;
+  z-index: 1;
+}
+
+.media-loading .timeline-image,
+.media-loading .standalone-image {
+  opacity: 0 !important;
+}
+
+@keyframes media-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 加载完成状态 */
+.media-loaded .timeline-image,
+.media-loaded .standalone-image {
+  opacity: 1 !important;
+}
+
+.media-loaded::before {
+  display: none;
+}
+
+/* 加载失败状态 */
+.media-error {
+  background: #f5f5f5;
+  border: 1px dashed #ddd;
+  border-radius: var(--radius-sm);
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-error img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ========== Video Loading States ========== */
+.video-wrapper.media-loading {
+  position: relative;
+  min-height: 200px;
+}
+
+.video-wrapper.video-loading .video-play-overlay {
+  pointer-events: none;
+}
+
+.video-wrapper.video-loading .loading-hint {
+  display: block !important;
+}
+
+.video-wrapper.media-error {
+  min-height: 150px;
+  background: #f5f5f5;
+  border: 1px dashed #ddd;
+  border-radius: var(--radius-sm);
+}
+
+.video-wrapper.media-error .video-play-overlay {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.video-wrapper.media-error .error-hint {
+  color: #E53935;
+  font-size: 14px;
+}
+
+/* Loading hint text */
+.loading-hint {
+  display: none;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.video-loading .loading-hint,
+.video-wrapper.media-loading .loading-hint {
+  display: block !important;
+}
