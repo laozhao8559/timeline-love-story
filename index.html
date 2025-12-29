@@ -4245,6 +4245,7 @@ if (document.readyState === 'loading') {
   <div id="debug-console" style="display:none;">
     <div id="debug-header">
       <span>🔍 调试日志</span>
+      <button id="debug-copy">📋 复制</button>
       <button id="debug-clear">清空</button>
       <button id="debug-close">✕</button>
     </div>
@@ -4368,6 +4369,7 @@ if (document.readyState === 'loading') {
       const debugToggle = document.getElementById('debug-toggle');
       const debugClear = document.getElementById('debug-clear');
       const debugClose = document.getElementById('debug-close');
+      const debugCopy = document.getElementById('debug-copy');
 
       // 显示调试按钮（在 iPhone Safari 上）
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -4436,6 +4438,54 @@ if (document.readyState === 'loading') {
       debugClear.addEventListener('click', () => {
         debugLogs.innerHTML = '';
       });
+
+      // 复制日志
+      debugCopy.addEventListener('click', () => {
+        const allLogs = Array.from(debugLogs.children).map(div => div.textContent).join('\n');
+        if (allLogs.length === 0) {
+          alert('没有日志可复制');
+          return;
+        }
+
+        // 使用现代 API 复制
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(allLogs).then(() => {
+            const originalText = debugCopy.textContent;
+            debugCopy.textContent = '✅ 已复制';
+            setTimeout(() => {
+              debugCopy.textContent = originalText;
+            }, 1500);
+          }).catch(err => {
+            console.error('复制失败:', err);
+            fallbackCopy(allLogs);
+          });
+        } else {
+          // 降级方案
+          fallbackCopy(allLogs);
+        }
+      });
+
+      // 降级复制方案
+      function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          const originalText = debugCopy.textContent;
+          debugCopy.textContent = '✅ 已复制';
+          setTimeout(() => {
+            debugCopy.textContent = originalText;
+          }, 1500);
+        } catch (err) {
+          console.error('复制失败:', err);
+          alert('复制失败，请手动选择日志复制');
+        }
+        document.body.removeChild(textarea);
+      }
 
       console.log('[调试] 控制台已启用');
     })();
