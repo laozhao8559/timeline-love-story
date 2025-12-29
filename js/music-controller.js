@@ -80,14 +80,50 @@ function toggleMusic() {
 
     // 首次点击：启动音乐播放
     if (!userInteracted) {
-      console.log('[Music] 首次点击，启动音乐播放');
-      bgMusic.play().then(() => {
-        isMusicPlaying = true;
-        userInteracted = true;
-        console.log('[Music] 音乐播放成功，开始渐入');
-      }).catch(err => {
-        console.warn('[Music] 播放失败:', err);
-      });
+      console.log('[Music] 首次点击，准备播放音乐');
+
+      // iOS Safari：确保音频已加载
+      const tryPlay = () => {
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            isMusicPlaying = true;
+            userInteracted = true;
+            console.log('[Music] 音乐播放成功，开始渐入');
+          }).catch(err => {
+            console.error('[Music] 播放失败:', err.name, err.message);
+
+            // 如果是 NotAllowedError，可能是用户交互问题
+            if (err.name === 'NotAllowedError') {
+              console.warn('[Music] 被浏览器阻止，需要更多用户交互');
+            }
+            // 如果是 NotSupportedError，可能是格式问题
+            else if (err.name === 'NotSupportedError') {
+              console.warn('[Music] 音频格式不支持');
+            }
+          });
+        }
+      };
+
+      // 检查音频是否已准备好
+      if (bgMusic.readyState >= 3) { // HAVE_FUTURE_DATA
+        tryPlay();
+      } else {
+        // 等待音频加载完成
+        console.log('[Music] 音频未准备好，等待加载...');
+        const onCanPlay = () => {
+          console.log('[Music] 音频加载完成，开始播放');
+          bgMusic.removeEventListener('canplay', onCanPlay);
+          tryPlay();
+        };
+        bgMusic.addEventListener('canplay', onCanPlay, { once: true });
+
+        // 如果音频还没开始加载，触发加载
+        if (bgMusic.readyState === 0) { // HAVE_NOTHING
+          console.log('[Music] 触发音频加载');
+          bgMusic.load();
+        }
+      }
     }
 
     console.log('[Music] 开启声音，masterVolumeFactor 0 → 1');
