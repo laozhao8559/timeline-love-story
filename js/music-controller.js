@@ -175,6 +175,12 @@ function muteMusic() {
 function animateMasterVolumeFactor(targetFactor, duration = 1000) {
   if (!bgMusic) return;
 
+  // 如果用户已主动关闭声音，不允许自动开启音量
+  if (userMuted && targetFactor > 0) {
+    console.log('[Music] userMuted=true，阻止 animateMasterVolumeFactor →', targetFactor);
+    return;
+  }
+
   const startFactor = masterVolumeFactor;
   const startTime = Date.now();
 
