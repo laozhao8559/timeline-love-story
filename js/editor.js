@@ -2735,7 +2735,7 @@ function initProposalPage() {
       const bgPosX = offsetX ? 'calc(50% + ' + offsetX + 'px)' : '50%';
       const bgPosY = offsetY ? 'calc(50% + ' + offsetY + 'px)' : '50%';
 
-      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" style=\\'background-image: url(\\'' + avatar.photo + '\\'); background-size: ' + bgSize + '; background-position: ' + bgPosX + ' ' + bgPosY + ';\\'></div></div>';
+      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" data-photo="' + escapeHtml(avatar.photo) + '" data-bg-size="' + bgSize + '" data-bg-pos-x="' + bgPosX + '" data-bg-pos-y="' + bgPosY + '"></div></div>';
     } else {
       avatarContent = '<div class="avatar-image-wrapper"><span class="avatar-emoji">' + avatar.emoji + '</span></div>';
     }
@@ -2744,6 +2744,16 @@ function initProposalPage() {
     const nameHtml = '<div class="avatar-name">' + escapeHtml(avatar.name) + '</div>';
 
     card.innerHTML = avatarContent + nameHtml;
+
+    // 设置 background-image（避免引号嵌套问题）
+    if (avatar.photo) {
+      const bgImage = card.querySelector('.avatar-bg-image');
+      if (bgImage) {
+        bgImage.style.backgroundImage = 'url("' + avatar.photo + '")';
+        bgImage.style.backgroundSize = bgImage.dataset.bgSize;
+        bgImage.style.backgroundPosition = bgImage.dataset.bgPosX + ' ' + bgImage.dataset.bgPosY;
+      }
+    }
 
     // 点击事件
     card.addEventListener('click', () => {
