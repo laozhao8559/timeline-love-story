@@ -106,14 +106,37 @@ function toggleMusic() {
       };
 
       // 检查音频是否已准备好
+      console.log('[Music] readyState:', bgMusic.readyState, '(0=NOTHING, 1=METADATA, 2=CURRENT, 3=FUTURE, 4=ENOUGH)');
+      console.log('[Music] audio src:', bgMusic.src);
+      console.log('[Music] audio currentSrc:', bgMusic.currentSrc);
+
       if (bgMusic.readyState >= 3) { // HAVE_FUTURE_DATA
         tryPlay();
       } else {
         // 等待音频加载完成
         console.log('[Music] 音频未准备好，等待加载...');
+
+        // 监听错误事件
+        const onError = (e) => {
+          console.error('[Music] 音频加载错误:', e);
+          console.error('[Music] error detail:', bgMusic.error);
+          console.error('[Music] error code:', bgMusic.error?.code, '(1=ABORTED, 2=NETWORK, 3=DECODE, 4=SRC_NOT_SUPPORTED)');
+          bgMusic.removeEventListener('error', onError);
+        };
+        bgMusic.addEventListener('error', onError);
+
+        // 监听加载开始
+        const onLoadStart = () => {
+          console.log('[Music] 开始加载音频');
+        };
+        bgMusic.addEventListener('loadstart', onLoadStart);
+
+        // 监听 canplay
         const onCanPlay = () => {
-          console.log('[Music] 音频加载完成，开始播放');
+          console.log('[Music] canplay 事件触发，开始播放');
           bgMusic.removeEventListener('canplay', onCanPlay);
+          bgMusic.removeEventListener('error', onError);
+          bgMusic.removeEventListener('loadstart', onLoadStart);
           tryPlay();
         };
         bgMusic.addEventListener('canplay', onCanPlay, { once: true });
