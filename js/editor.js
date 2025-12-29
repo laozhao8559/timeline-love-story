@@ -2735,7 +2735,7 @@ function initProposalPage() {
       const bgPosX = offsetX ? 'calc(50% + ' + offsetX + 'px)' : '50%';
       const bgPosY = offsetY ? 'calc(50% + ' + offsetY + 'px)' : '50%';
 
-      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" style="background-image: url(\"' + avatar.photo + '\"); background-size: ' + bgSize + '; background-position: ' + bgPosX + ' ' + bgPosY + ';"></div></div>';
+      avatarContent = '<div class="avatar-image-wrapper"><div class="avatar-bg-image" style=\'background-image: url("' + avatar.photo + '"); background-size: ' + bgSize + '; background-position: ' + bgPosX + ' ' + bgPosY + ';\'></div></div>';
     } else {
       avatarContent = '<div class="avatar-image-wrapper"><span class="avatar-emoji">' + avatar.emoji + '</span></div>';
     }
